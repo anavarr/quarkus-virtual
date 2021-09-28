@@ -49,6 +49,7 @@ import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNa
 import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.REST_QUERY_PARAM;
 import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.REST_RESPONSE;
 import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.REST_SSE_ELEMENT_TYPE;
+import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.VIRTUAL_BLOCKING;
 import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.SET;
 import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.SORTED_SET;
 import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.STRING;
@@ -56,7 +57,6 @@ import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNa
 import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.TRANSACTIONAL;
 import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.UNI;
 import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.ZONED_DATE_TIME;
-
 import java.lang.reflect.Modifier;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -105,6 +105,7 @@ import org.jboss.resteasy.reactive.common.processor.transformation.AnnotationSto
 import org.jboss.resteasy.reactive.common.processor.transformation.AnnotationsTransformer;
 import org.jboss.resteasy.reactive.common.util.URLUtils;
 import org.jboss.resteasy.reactive.spi.BeanFactory;
+
 
 public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD>, PARAM extends IndexedParameter<PARAM>, METHOD extends ResourceMethod> {
 
@@ -586,6 +587,7 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
             }
             Set<String> nameBindingNames = nameBindingNames(currentMethodInfo, classNameBindings);
             boolean blocking = isBlocking(currentMethodInfo, defaultBlocking);
+            boolean virtualBlocking = isVirtualBlocking(currentMethodInfo, defaultBlocking);
             // we want to allow "overriding" the blocking/non-blocking setting from an implementation class
             // when the class defining the annotations is an interface
             if (!actualEndpointInfo.equals(currentClassInfo) && Modifier.isInterface(currentClassInfo.flags())) {
@@ -612,6 +614,7 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
                     .setNameBindingNames(nameBindingNames)
                     .setName(currentMethodInfo.name())
                     .setBlocking(blocking)
+                    .setVirtualBlocking(virtualBlocking)
                     .setSuspended(suspended)
                     .setSse(sse)
                     .setSseElementType(sseElementType)
@@ -642,6 +645,45 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
 
     protected void handleClientSubResource(ResourceMethod resourceMethod, MethodInfo method, IndexView index) {
 
+    }
+
+    private boolean isVirtualBlocking(MethodInfo info, BlockingDefault defaultValue){
+        Map.Entry<AnnotationTarget, AnnotationInstance> virtualBlockingAnnotation = getInheritableAnnotation(info,
+                VIRTUAL_BLOCKING);
+        Map.Entry<AnnotationTarget, AnnotationInstance> nonBlockingAnnotation = getInheritableAnnotation(info,
+                NON_BLOCKING);
+        if ((virtualBlockingAnnotation != null) && (nonBlockingAnnotation != null)) {
+            if (virtualBlockingAnnotation.getKey().kind() == nonBlockingAnnotation.getKey().kind()) {
+                if (virtualBlockingAnnotation.getKey().kind() == AnnotationTarget.Kind.METHOD) {
+                    throw new DeploymentException("Method '" + info.name() + "' of class '" + info.declaringClass().name()
+                            + "' contains both @Blocking and @NonBlocking annotations.");
+                } else {
+                    throw new DeploymentException("Class '" + info.declaringClass().name()
+                            + "' contains both @Blocking and @NonBlocking annotations.");
+                }
+            }
+            if (virtualBlockingAnnotation.getKey().kind() == AnnotationTarget.Kind.METHOD) {
+                // the most specific annotation was the @Blocking annotation on the method
+                return true;
+            } else {
+                // the most specific annotation was the @NonBlocking annotation on the method
+                return false;
+            }
+        } else if ((virtualBlockingAnnotation != null)) {
+            return true;
+        } else if ((nonBlockingAnnotation != null)) {
+            return false;
+        }
+        Map.Entry<AnnotationTarget, AnnotationInstance> transactional = getInheritableAnnotation(info, TRANSACTIONAL); //we treat this the same as blocking, as JTA is blocking, but it is lower priority
+        if (transactional != null) {
+            return true;
+        }
+        if (defaultValue == BlockingDefault.BLOCKING) {
+            return true;
+        } else if (defaultValue == BlockingDefault.NON_BLOCKING) {
+            return false;
+        }
+        return doesMethodHaveBlockingSignature(info);
     }
 
     private boolean isBlocking(MethodInfo info, BlockingDefault defaultValue) {

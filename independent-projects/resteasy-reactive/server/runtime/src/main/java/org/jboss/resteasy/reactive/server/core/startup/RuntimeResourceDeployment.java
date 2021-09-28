@@ -203,6 +203,8 @@ public class RuntimeResourceDeployment {
                 handlers.add(blockingHandler);
                 blockingHandlerIndex = Optional.of(handlers.size() - 1);
                 score.add(ScoreSystem.Category.Execution, ScoreSystem.Diagnostic.ExecutionBlocking);
+            } else if(method.isVirtualBlocking()){
+
             } else {
                 handlers.add(NonBlockingHandler.INSTANCE);
                 score.add(ScoreSystem.Category.Execution, ScoreSystem.Diagnostic.ExecutionNonBlocking);
