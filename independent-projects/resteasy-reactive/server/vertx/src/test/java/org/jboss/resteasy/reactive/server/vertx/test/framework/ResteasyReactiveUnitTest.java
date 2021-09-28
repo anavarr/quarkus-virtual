@@ -17,6 +17,7 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.mutiny.core.file.AsyncFile;
 import java.io.Closeable;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -36,10 +37,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.*;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.logging.Handler;
@@ -157,6 +155,21 @@ public class ResteasyReactiveUnitTest implements BeforeAllCallback, AfterAllCall
     public ResteasyReactiveUnitTest setMaxFormAttributeSize(int maxFormAttributeSize) {
         this.maxFormAttributeSize = maxFormAttributeSize;
         return this;
+    }
+
+    private static Executor setVirtualThreadExecutor() {
+        Executor exec = Executors.newSingleThreadExecutor();
+        if (Runtime.version().compareToIgnoreOptional(Runtime.Version.parse("18-loom")) >= 0) {
+            try {
+                exec = (Executor) Class.forName("java.util.concurrent.Executors")
+                        .getMethod("newVirtualThreadExecutor")
+                        .invoke(null);
+            } catch (ClassNotFoundException | NoSuchMethodException | InvocationTargetException
+                    | IllegalAccessException e) {
+                e.printStackTrace();
+            }
+        }
+        return exec;
     }
 
     public ResteasyReactiveUnitTest setExpectedException(Class<? extends Throwable> expectedException) {
