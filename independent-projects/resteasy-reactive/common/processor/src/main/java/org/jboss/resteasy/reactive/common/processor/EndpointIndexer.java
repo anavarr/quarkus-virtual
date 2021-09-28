@@ -1,5 +1,7 @@
 package org.jboss.resteasy.reactive.common.processor;
 
+import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.*;
+
 import java.lang.reflect.Modifier;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -48,8 +50,6 @@ import org.jboss.resteasy.reactive.common.util.ReflectionBeanFactoryCreator;
 import org.jboss.resteasy.reactive.common.util.URLUtils;
 import org.jboss.resteasy.reactive.spi.BeanFactory;
 import org.objectweb.asm.Opcodes;
-
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.*;
 
 public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD>, PARAM extends IndexedParameter<PARAM>, METHOD extends ResourceMethod> {
 
@@ -471,7 +471,7 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
             }
             Set<String> nameBindingNames = nameBindingNames(currentMethodInfo, classNameBindings);
             boolean blocking = isBlocking(currentMethodInfo, defaultBlocking);
-            boolean virtualBlocking =
+            boolean virtualBlocking = isVirtualBlocking(currentMethodInfo, defaultBlocking);
             // we want to allow "overriding" the blocking/non-blocking setting from an implementation class
             // when the class defining the annotations is an interface
             if (!actualEndpointInfo.equals(currentClassInfo) && Modifier.isInterface(currentClassInfo.flags())) {
@@ -524,7 +524,7 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
 
     }
 
-    private boolean isVirtualBlocking(MethodInfo info, BlockingDefault defaultValue){
+    private boolean isVirtualBlocking(MethodInfo info, BlockingDefault defaultValue) {
         Map.Entry<AnnotationTarget, AnnotationInstance> virtualBlockingAnnotation = getInheritableAnnotation(info,
                 VIRTUAL_BLOCKING);
         Map.Entry<AnnotationTarget, AnnotationInstance> nonBlockingAnnotation = getInheritableAnnotation(info,
