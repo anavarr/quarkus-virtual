@@ -56,6 +56,8 @@ public class ResourceMethod {
 
     private boolean blocking;
 
+    private boolean virtualBlocking;
+
     private boolean suspended;
 
     private boolean isSse;
@@ -179,8 +181,17 @@ public class ResourceMethod {
         return blocking;
     }
 
+    public boolean isVirtualBlocking() {
+        return virtualBlocking;
+    }
+
     public ResourceMethod setBlocking(boolean blocking) {
         this.blocking = blocking;
+        return this;
+    }
+
+    public ResourceMethod setVirtualBlocking(boolean virtualBlocking){
+        this.virtualBlocking = virtualBlocking;
         return this;
     }
 
