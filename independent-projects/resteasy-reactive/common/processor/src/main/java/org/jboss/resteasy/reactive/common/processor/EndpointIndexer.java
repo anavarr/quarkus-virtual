@@ -57,6 +57,7 @@ import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNa
 import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.TRANSACTIONAL;
 import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.UNI;
 import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.ZONED_DATE_TIME;
+import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.RUN_ON_VIRTUAL_THREAD;
 
 import java.lang.reflect.Modifier;
 import java.math.BigDecimal;
@@ -106,6 +107,7 @@ import org.jboss.resteasy.reactive.common.processor.transformation.AnnotationSto
 import org.jboss.resteasy.reactive.common.processor.transformation.AnnotationsTransformer;
 import org.jboss.resteasy.reactive.common.util.URLUtils;
 import org.jboss.resteasy.reactive.spi.BeanFactory;
+
 
 public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD>, PARAM extends IndexedParameter<PARAM>, METHOD extends ResourceMethod> {
 
@@ -583,6 +585,7 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
             }
             Set<String> nameBindingNames = nameBindingNames(currentMethodInfo, classNameBindings);
             boolean blocking = isBlocking(currentMethodInfo, defaultBlocking);
+            boolean runOnVirtualThread = isRunOnVirtualThread(currentMethodInfo, defaultBlocking);
             // we want to allow "overriding" the blocking/non-blocking setting from an implementation class
             // when the class defining the annotations is an interface
             if (!actualEndpointInfo.equals(currentClassInfo) && Modifier.isInterface(currentClassInfo.flags())) {
@@ -591,7 +594,10 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
                 if (actualMethodInfo != null) {
                     //we don't pass AUTOMATIC here, as the method signature would be the same, so the same determination
                     //would be reached for a default
-                    blocking = isBlocking(actualMethodInfo, blocking ? BlockingDefault.BLOCKING : BlockingDefault.NON_BLOCKING);
+                    blocking = isBlocking(actualMethodInfo,
+                            blocking ? BlockingDefault.BLOCKING : BlockingDefault.NON_BLOCKING);
+                    runOnVirtualThread = isRunOnVirtualThread(actualMethodInfo,
+                            blocking ? BlockingDefault.BLOCKING : BlockingDefault.NON_BLOCKING);
                 }
             }
 
@@ -609,6 +615,7 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
                     .setNameBindingNames(nameBindingNames)
                     .setName(currentMethodInfo.name())
                     .setBlocking(blocking)
+                    .setRunOnVirtualThread(runOnVirtualThread)
                     .setSuspended(suspended)
                     .setSse(sse)
                     .setStreamElementType(streamElementType)
@@ -661,15 +668,70 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
         return value;
     }
 
+    private boolean isRunOnVirtualThread(MethodInfo info, BlockingDefault defaultValue) {
+        //if the method is not blocking, it can't be run on virtual threads.
+        //Shall we really throw a DeploymentException ?
+        boolean isBlocking = isBlocking(info, defaultValue);
+
+        //if the runtime does not use java 18+ then the virtual threads are not available
+        //we print a warning and discard the annotation
+        boolean isJDKCompatible = Runtime.version().compareToIgnoreOptional(Runtime.Version.parse("18-loom")) >= 0;
+
+        DeploymentException de = new DeploymentException(
+                "Method '" + info.name() + "' of class '" + info.declaringClass().name()
+                        + "' contains @RunOnVirtualThread but is not blocking.");
+        Map.Entry<AnnotationTarget, AnnotationInstance> runOnVirtualThreadAnnotation = getInheritableAnnotation(info,
+                RUN_ON_VIRTUAL_THREAD);
+
+        //should the Transactional annotation override the annotation @RunOnVirtualThread ?
+        //here it does : it is impossible for a transaction to run on a virtual thread
+        Map.Entry<AnnotationTarget, AnnotationInstance> transactional = getInheritableAnnotation(info, TRANSACTIONAL); //we treat this the same as blocking, as JTA is blocking, but it is lower priority
+        if (transactional != null) {
+            return false;
+        }
+
+        if (runOnVirtualThreadAnnotation != null) {
+            if (!isBlocking)
+                throw de;
+            if (!isJDKCompatible) {
+                log.warn("Your version of the JDK is '" + Runtime.version() + "', jdk-18-loom or superior is required" +
+                        " for virtual threads to be supported.");
+                return false;
+            }
+            return true;
+        }
+
+        //BlockingDefault.BLOCKING should mean "block a platform thread" ? here it does
+        if (defaultValue == BlockingDefault.BLOCKING) {
+            return false;
+        } else if (defaultValue == BlockingDefault.RUN_ON_VIRTUAL_THREAD) {
+            if (!isBlocking)
+                throw de;
+            if (!isJDKCompatible) {
+                log.warn("Your version of the JDK is '" + Runtime.version() + "', jdk-18-loom or superior is required" +
+                        "for virtual threads to be supported.");
+                return false;
+            }
+            return true;
+        } else if (defaultValue == BlockingDefault.NON_BLOCKING) {
+            return false;
+        }
+        return false;
+    }
+
     private boolean isBlocking(MethodInfo info, BlockingDefault defaultValue) {
         Map.Entry<AnnotationTarget, AnnotationInstance> blockingAnnotation = getInheritableAnnotation(info, BLOCKING);
+        Map.Entry<AnnotationTarget, AnnotationInstance> runOnVirtualThreadAnnotation = getInheritableAnnotation(info,
+                RUN_ON_VIRTUAL_THREAD);
         Map.Entry<AnnotationTarget, AnnotationInstance> nonBlockingAnnotation = getInheritableAnnotation(info,
                 NON_BLOCKING);
+
         if ((blockingAnnotation != null) && (nonBlockingAnnotation != null)) {
             if (blockingAnnotation.getKey().kind() == nonBlockingAnnotation.getKey().kind()) {
                 if (blockingAnnotation.getKey().kind() == AnnotationTarget.Kind.METHOD) {
-                    throw new DeploymentException("Method '" + info.name() + "' of class '" + info.declaringClass().name()
-                            + "' contains both @Blocking and @NonBlocking annotations.");
+                    throw new DeploymentException(
+                            "Method '" + info.name() + "' of class '" + info.declaringClass().name()
+                                    + "' contains both @Blocking and @NonBlocking annotations.");
                 } else {
                     throw new DeploymentException("Class '" + info.declaringClass().name()
                             + "' contains both @Blocking and @NonBlocking annotations.");
@@ -693,6 +755,8 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
         }
         if (defaultValue == BlockingDefault.BLOCKING) {
             return true;
+        } else if (defaultValue == BlockingDefault.RUN_ON_VIRTUAL_THREAD) {
+            return false;
         } else if (defaultValue == BlockingDefault.NON_BLOCKING) {
             return false;
         }
