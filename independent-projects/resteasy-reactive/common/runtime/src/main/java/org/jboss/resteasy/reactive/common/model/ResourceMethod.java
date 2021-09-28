@@ -190,7 +190,7 @@ public class ResourceMethod {
         return this;
     }
 
-    public ResourceMethod setVirtualBlocking(boolean virtualBlocking){
+    public ResourceMethod setVirtualBlocking(boolean virtualBlocking) {
         this.virtualBlocking = virtualBlocking;
         return this;
     }
