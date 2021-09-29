@@ -59,6 +59,7 @@ import org.jboss.resteasy.reactive.server.core.serialization.FixedEntityWriter;
 import org.jboss.resteasy.reactive.server.core.serialization.FixedEntityWriterArray;
 import org.jboss.resteasy.reactive.server.handlers.AbortChainHandler;
 import org.jboss.resteasy.reactive.server.handlers.BlockingHandler;
+import org.jboss.resteasy.reactive.server.handlers.VirtualBlockingHandler;
 import org.jboss.resteasy.reactive.server.handlers.ExceptionHandler;
 import org.jboss.resteasy.reactive.server.handlers.FixedProducesHandler;
 import org.jboss.resteasy.reactive.server.handlers.FormBodyHandler;
@@ -103,6 +104,7 @@ public class RuntimeResourceDeployment {
     private final ServerSerialisers serialisers;
     private final ResteasyReactiveConfig resteasyReactiveConfig;
     private final Supplier<Executor> executorSupplier;
+    private final Supplier<Executor> virtualExecutorSupplier;
     private final RuntimeInterceptorDeployment runtimeInterceptorDeployment;
     private final DynamicEntityWriter dynamicEntityWriter;
     private final ResourceLocatorHandler resourceLocatorHandler;
@@ -114,12 +116,14 @@ public class RuntimeResourceDeployment {
     private final ResponseWriterHandler responseWriterHandler;
 
     public RuntimeResourceDeployment(DeploymentInfo info, Supplier<Executor> executorSupplier,
+            Supplier<Executor> virtualExecutorSupplier,
             RuntimeInterceptorDeployment runtimeInterceptorDeployment, DynamicEntityWriter dynamicEntityWriter,
             ResourceLocatorHandler resourceLocatorHandler, boolean defaultBlocking) {
         this.info = info;
         this.serialisers = info.getSerialisers();
         this.resteasyReactiveConfig = info.getResteasyReactiveConfig();
         this.executorSupplier = executorSupplier;
+        this.virtualExecutorSupplier = virtualExecutorSupplier;
         this.runtimeInterceptorDeployment = runtimeInterceptorDeployment;
         this.dynamicEntityWriter = dynamicEntityWriter;
         this.resourceLocatorHandler = resourceLocatorHandler;
@@ -204,7 +208,9 @@ public class RuntimeResourceDeployment {
                 blockingHandlerIndex = Optional.of(handlers.size() - 1);
                 score.add(ScoreSystem.Category.Execution, ScoreSystem.Diagnostic.ExecutionBlocking);
             } else if (method.isVirtualBlocking()) {
-
+                handlers.add(new VirtualBlockingHandler(virtualExecutorSupplier));
+                blockingHandlerIndex = Optional.of(handlers.size() - 1);
+                score.add(ScoreSystem.Category.Execution, ScoreSystem.Diagnostic.ExecutionBlocking);
             } else {
                 handlers.add(NonBlockingHandler.INSTANCE);
                 score.add(ScoreSystem.Category.Execution, ScoreSystem.Diagnostic.ExecutionNonBlocking);
@@ -265,7 +271,13 @@ public class RuntimeResourceDeployment {
             checkReadBodyRequestFilters = true;
         } else if (bodyParameter != null) {
             if (!defaultBlocking) {
-                if (!method.isBlocking()) {
+                if (method.isBlocking()) {
+                    handlers.add(new InputHandler(resteasyReactiveConfig.getInputBufferSize(), executorSupplier));
+                    checkReadBodyRequestFilters = true;
+                } else if (!method.isBlocking() && method.isVirtualBlocking()) {
+                    handlers.add(new InputHandler(resteasyReactiveConfig.getInputBufferSize(), executorSupplier));
+                    checkReadBodyRequestFilters = true;
+                } else if (!method.isBlocking() && !method.isVirtualBlocking()) {
                     // allow the body to be read by chunks
                     handlers.add(new InputHandler(resteasyReactiveConfig.getInputBufferSize(), executorSupplier));
                     checkReadBodyRequestFilters = true;
@@ -467,7 +479,7 @@ public class RuntimeResourceDeployment {
                 method.getProduces() == null ? null : serverMediaType,
                 consumesMediaTypes, invoker,
                 clazz.getFactory(), handlers.toArray(EMPTY_REST_HANDLER_ARRAY), method.getName(), parameterDeclaredTypes,
-                nonAsyncReturnType, method.isBlocking(), resourceClass,
+                nonAsyncReturnType, method.isBlocking(), method.isVirtualBlocking(), resourceClass,
                 lazyMethod,
                 pathParameterIndexes, info.isDevelopmentMode() ? score : null, sseElementType, clazz.resourceExceptionMapper());
     }
