@@ -52,6 +52,7 @@ public class RuntimeDeploymentManager {
     public static final ServerRestHandler[] EMPTY_REST_HANDLER_ARRAY = new ServerRestHandler[0];
     private final DeploymentInfo info;
     private final Supplier<Executor> executorSupplier;
+    private final Supplier<Executor> virtualExecutorSupplier;
     private final CustomServerRestHandlers customServerRestHandlers;
     private final Consumer<Closeable> closeTaskHandler;
     private final RequestContextFactory requestContextFactory;
@@ -60,11 +61,13 @@ public class RuntimeDeploymentManager {
 
     public RuntimeDeploymentManager(DeploymentInfo info,
             Supplier<Executor> executorSupplier,
+            Supplier<Executor> virtualExecutorSupplier,
             CustomServerRestHandlers customServerRestHandlers,
             Consumer<Closeable> closeTaskHandler,
             RequestContextFactory requestContextFactory, ThreadSetupAction threadSetupAction, String rootPath) {
         this.info = info;
         this.executorSupplier = executorSupplier;
+        this.virtualExecutorSupplier = virtualExecutorSupplier;
         this.customServerRestHandlers = customServerRestHandlers;
         this.closeTaskHandler = closeTaskHandler;
         this.requestContextFactory = requestContextFactory;
@@ -98,6 +101,7 @@ public class RuntimeDeploymentManager {
                 });
         List<RuntimeConfigurableServerRestHandler> runtimeConfigurableServerRestHandlers = new ArrayList<>();
         RuntimeResourceDeployment runtimeResourceDeployment = new RuntimeResourceDeployment(info, executorSupplier,
+                virtualExecutorSupplier,
                 customServerRestHandlers,
                 interceptorDeployment, dynamicEntityWriter, resourceLocatorHandler, requestContextFactory.isDefaultBlocking());
         List<ResourceClass> possibleSubResource = new ArrayList<>(locatableResourceClasses);

@@ -57,23 +57,7 @@ import org.jboss.resteasy.reactive.server.core.parameters.converters.RuntimeReso
 import org.jboss.resteasy.reactive.server.core.serialization.DynamicEntityWriter;
 import org.jboss.resteasy.reactive.server.core.serialization.FixedEntityWriter;
 import org.jboss.resteasy.reactive.server.core.serialization.FixedEntityWriterArray;
-import org.jboss.resteasy.reactive.server.handlers.AbortChainHandler;
-import org.jboss.resteasy.reactive.server.handlers.BlockingHandler;
-import org.jboss.resteasy.reactive.server.handlers.ExceptionHandler;
-import org.jboss.resteasy.reactive.server.handlers.FixedProducesHandler;
-import org.jboss.resteasy.reactive.server.handlers.FormBodyHandler;
-import org.jboss.resteasy.reactive.server.handlers.InputHandler;
-import org.jboss.resteasy.reactive.server.handlers.InstanceHandler;
-import org.jboss.resteasy.reactive.server.handlers.InvocationHandler;
-import org.jboss.resteasy.reactive.server.handlers.ParameterHandler;
-import org.jboss.resteasy.reactive.server.handlers.PerRequestInstanceHandler;
-import org.jboss.resteasy.reactive.server.handlers.RequestDeserializeHandler;
-import org.jboss.resteasy.reactive.server.handlers.ResourceLocatorHandler;
-import org.jboss.resteasy.reactive.server.handlers.ResourceRequestFilterHandler;
-import org.jboss.resteasy.reactive.server.handlers.ResponseHandler;
-import org.jboss.resteasy.reactive.server.handlers.ResponseWriterHandler;
-import org.jboss.resteasy.reactive.server.handlers.SseResponseWriterHandler;
-import org.jboss.resteasy.reactive.server.handlers.VariableProducesHandler;
+import org.jboss.resteasy.reactive.server.handlers.*;
 import org.jboss.resteasy.reactive.server.mapping.RuntimeResource;
 import org.jboss.resteasy.reactive.server.mapping.URITemplate;
 import org.jboss.resteasy.reactive.server.model.HandlerChainCustomizer;
@@ -97,6 +81,7 @@ public class RuntimeResourceDeployment {
     private final ServerSerialisers serialisers;
     private final ResteasyReactiveConfig quarkusRestConfig;
     private final Supplier<Executor> executorSupplier;
+    private final Supplier<Executor> virtualExecutorSupplier;
     private final CustomServerRestHandlers customServerRestHandlers;
     private final RuntimeInterceptorDeployment runtimeInterceptorDeployment;
     private final DynamicEntityWriter dynamicEntityWriter;
@@ -107,6 +92,7 @@ public class RuntimeResourceDeployment {
     private final boolean defaultBlocking;
 
     public RuntimeResourceDeployment(DeploymentInfo info, Supplier<Executor> executorSupplier,
+            Supplier<Executor> virtualExecutorSupplier,
             CustomServerRestHandlers customServerRestHandlers,
             RuntimeInterceptorDeployment runtimeInterceptorDeployment, DynamicEntityWriter dynamicEntityWriter,
             ResourceLocatorHandler resourceLocatorHandler, boolean defaultBlocking) {
@@ -114,6 +100,7 @@ public class RuntimeResourceDeployment {
         this.serialisers = info.getSerialisers();
         this.quarkusRestConfig = info.getConfig();
         this.executorSupplier = executorSupplier;
+        this.virtualExecutorSupplier = virtualExecutorSupplier;
         this.customServerRestHandlers = customServerRestHandlers;
         this.runtimeInterceptorDeployment = runtimeInterceptorDeployment;
         this.dynamicEntityWriter = dynamicEntityWriter;
@@ -184,7 +171,7 @@ public class RuntimeResourceDeployment {
                 blockingHandlerIndex = Optional.of(handlers.size() - 1);
                 score.add(ScoreSystem.Category.Execution, ScoreSystem.Diagnostic.ExecutionBlocking);
             } else if (method.isVirtualBlocking()) {
-                handlers.add(new BlockingHandler(executorSupplier));
+                handlers.add(new VirtualBlockingHandler(virtualExecutorSupplier));
                 blockingHandlerIndex = Optional.of(handlers.size() - 1);
                 score.add(ScoreSystem.Category.Execution, ScoreSystem.Diagnostic.ExecutionBlocking);
             } else {
@@ -258,7 +245,7 @@ public class RuntimeResourceDeployment {
                         handlers.add(blockingInputHandlerSupplier.get());
                     } else {
                         throw new RuntimeException(
-                                "The current execution environment does not implement a ServerRestHandler for blocking input");
+                                "The current execution environment does not implement a ServerRestHandler for virtual blocking input");
                     }
                 } else if (!method.isBlocking() && !method.isVirtualBlocking()) {
                     // allow the body to be read by chunks

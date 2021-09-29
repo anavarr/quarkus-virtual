@@ -32,9 +32,9 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.target>11</maven.compiler.target>
-        <maven.compiler.source>11</maven.compiler.source>
-        <maven.compiler.release>11</maven.compiler.release>
+<!--        <maven.compiler.target>18-internal</maven.compiler.target>-->
+<!--        <maven.compiler.source>18-internal</maven.compiler.source>-->
+<!--        <maven.compiler.release>18-internal</maven.compiler.release>-->
         <!-- Versions -->
         <version.cdi>2.0.2</version.cdi>
         <version.jandex>2.4.0.Final</version.jandex>
