@@ -557,7 +557,8 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
     }
 
     private boolean isVirtualBlocking(MethodInfo info, BlockingDefault defaultValue) {
-        if(isBlocking(info, defaultValue)) return false;
+        if (isBlocking(info, defaultValue))
+            return false;
         Map.Entry<AnnotationTarget, AnnotationInstance> blockingAnnotation = getInheritableAnnotation(info, BLOCKING);
         Map.Entry<AnnotationTarget, AnnotationInstance> virtualBlockingAnnotation = getInheritableAnnotation(info,
                 VIRTUAL_BLOCKING);
@@ -569,8 +570,7 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
                 if (virtualBlockingAnnotation.getKey().kind() == AnnotationTarget.Kind.METHOD) {
                     throw new DeploymentException(
                             "Method '" + info.name() + "' of class '" + info.declaringClass().name()
-                                    + "' contains both @VirtualBlocking and @NonBlocking annotations."
-                    );
+                                    + "' contains both @VirtualBlocking and @NonBlocking annotations.");
                 } else {
                     throw new DeploymentException("Class '" + info.declaringClass().name()
                             + "' contains both @VirtualBlocking and @NonBlocking annotations.");
@@ -578,18 +578,17 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
             }
             if (virtualBlockingAnnotation.getKey().kind() == AnnotationTarget.Kind.METHOD) {
                 //still need to test if there is also a @Blocking Annotation
-                if(blockingAnnotation != null &&
-                        virtualBlockingAnnotation.getKey().kind() == blockingAnnotation.getKey().kind()){
+                if (blockingAnnotation != null &&
+                        virtualBlockingAnnotation.getKey().kind() == blockingAnnotation.getKey().kind()) {
                     throw new DeploymentException(
                             "Method '" + info.name() + "' of class '" + info.declaringClass().name()
-                                    + "' contains both @VirtualBlocking and @Blocking annotations."
-                    );
+                                    + "' contains both @VirtualBlocking and @Blocking annotations.");
                 }
                 // the most specific annotation was the @VirtualBlocking annotation on the method
                 return true;
             } else {
-                if(blockingAnnotation != null
-                        && virtualBlockingAnnotation.getKey().kind() == blockingAnnotation.getKey().kind()){
+                if (blockingAnnotation != null
+                        && virtualBlockingAnnotation.getKey().kind() == blockingAnnotation.getKey().kind()) {
                     //although @NonBlocking is the most specific annotation, the class is both VirtualBlocking and Blocking, should we throw ?
                     throw new DeploymentException("Class '" + info.declaringClass().name()
                             + "' contains both @VirtualBlocking and @Blocking annotations.");
@@ -597,14 +596,13 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
                 // the most specific annotation was the @NonBlocking annotation on the method
                 return false;
             }
-        } else if(virtualBlockingAnnotation != null && blockingAnnotation != null){
+        } else if (virtualBlockingAnnotation != null && blockingAnnotation != null) {
             //simpler than first case since we know nonBlockingAnnotation is null
             if (virtualBlockingAnnotation.getKey().kind() == blockingAnnotation.getKey().kind()) {
                 if (virtualBlockingAnnotation.getKey().kind() == AnnotationTarget.Kind.METHOD) {
                     throw new DeploymentException(
                             "Method '" + info.name() + "' of class '" + info.declaringClass().name()
-                                    + "' contains both @VirtualBlocking and @Blocking annotations."
-                    );
+                                    + "' contains both @VirtualBlocking and @Blocking annotations.");
                 } else {
                     throw new DeploymentException("Class '" + info.declaringClass().name()
                             + "' contains both @VirtualBlocking and @Blocking annotations.");
@@ -619,7 +617,7 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
             }
         } else if ((blockingAnnotation != null)) {
             return false;
-        } else if(virtualBlockingAnnotation != null) {
+        } else if (virtualBlockingAnnotation != null) {
             return true;
         } else if ((nonBlockingAnnotation != null)) {
             return false;
@@ -633,7 +631,7 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
 
         if (defaultValue == BlockingDefault.BLOCKING) {
             return false;
-        } else if(defaultValue == BlockingDefault.VIRTUAL_BLOCKING) {
+        } else if (defaultValue == BlockingDefault.VIRTUAL_BLOCKING) {
             return true;
         } else if (defaultValue == BlockingDefault.NON_BLOCKING) {
             return false;
@@ -654,8 +652,7 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
                 if (blockingAnnotation.getKey().kind() == AnnotationTarget.Kind.METHOD) {
                     throw new DeploymentException(
                             "Method '" + info.name() + "' of class '" + info.declaringClass().name()
-                            + "' contains both @Blocking and @NonBlocking annotations."
-                    );
+                                    + "' contains both @Blocking and @NonBlocking annotations.");
                 } else {
                     throw new DeploymentException("Class '" + info.declaringClass().name()
                             + "' contains both @Blocking and @NonBlocking annotations.");
@@ -663,18 +660,17 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
             }
             if (blockingAnnotation.getKey().kind() == AnnotationTarget.Kind.METHOD) {
                 //still need to test if there is also a virtualBlockingAnnotation
-                if(virtualBlockingAnnotation != null &&
-                        blockingAnnotation.getKey().kind() == virtualBlockingAnnotation.getKey().kind()){
+                if (virtualBlockingAnnotation != null &&
+                        blockingAnnotation.getKey().kind() == virtualBlockingAnnotation.getKey().kind()) {
                     throw new DeploymentException(
                             "Method '" + info.name() + "' of class '" + info.declaringClass().name()
-                            + "' contains both @Blocking and @VirtualBlocking annotations."
-                    );
+                                    + "' contains both @Blocking and @VirtualBlocking annotations.");
                 }
                 // the most specific annotation was the @Blocking annotation on the method
                 return true;
             } else {
-                if(virtualBlockingAnnotation != null
-                        && blockingAnnotation.getKey().kind() == virtualBlockingAnnotation.getKey().kind()){
+                if (virtualBlockingAnnotation != null
+                        && blockingAnnotation.getKey().kind() == virtualBlockingAnnotation.getKey().kind()) {
                     //although @NonBlocking is the most specific annotation, the class is both VirtualBlocking and Blocking, should we throw ?
                     throw new DeploymentException("Class '" + info.declaringClass().name()
                             + "' contains both @Blocking and @VirtualBlocking annotations.");
@@ -682,14 +678,13 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
                 // the most specific annotation was the @NonBlocking annotation on the method
                 return false;
             }
-        } else if(blockingAnnotation != null && virtualBlockingAnnotation != null){
+        } else if (blockingAnnotation != null && virtualBlockingAnnotation != null) {
             //simpler than first case since we know nonBlockingAnnotation is null
             if (blockingAnnotation.getKey().kind() == virtualBlockingAnnotation.getKey().kind()) {
                 if (blockingAnnotation.getKey().kind() == AnnotationTarget.Kind.METHOD) {
                     throw new DeploymentException(
                             "Method '" + info.name() + "' of class '" + info.declaringClass().name()
-                            + "' contains both @Blocking and @VirtualBlocking annotations."
-                    );
+                                    + "' contains both @Blocking and @VirtualBlocking annotations.");
                 } else {
                     throw new DeploymentException("Class '" + info.declaringClass().name()
                             + "' contains both @Blocking and @VirtualBlocking annotations.");
@@ -704,7 +699,7 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
             }
         } else if ((blockingAnnotation != null)) {
             return true;
-        } else if(virtualBlockingAnnotation != null) {
+        } else if (virtualBlockingAnnotation != null) {
             return false;
         } else if ((nonBlockingAnnotation != null)) {
             return false;
@@ -715,7 +710,7 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
         }
         if (defaultValue == BlockingDefault.BLOCKING) {
             return true;
-        } else if(defaultValue == BlockingDefault.VIRTUAL_BLOCKING) {
+        } else if (defaultValue == BlockingDefault.VIRTUAL_BLOCKING) {
             return false;
         } else if (defaultValue == BlockingDefault.NON_BLOCKING) {
             return false;
