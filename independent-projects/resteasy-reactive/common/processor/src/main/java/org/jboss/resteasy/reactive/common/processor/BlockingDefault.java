@@ -6,5 +6,6 @@ public enum BlockingDefault {
      */
     AUTOMATIC,
     BLOCKING,
-    NON_BLOCKING
+    NON_BLOCKING,
+    VIRTUAL_BLOCKING
 }
