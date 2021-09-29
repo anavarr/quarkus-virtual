@@ -529,6 +529,7 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
     }
 
     private boolean isVirtualBlocking(MethodInfo info, BlockingDefault defaultValue) {
+        if(isBlocking(info, defaultValue)) return false;
         Map.Entry<AnnotationTarget, AnnotationInstance> blockingAnnotation = getInheritableAnnotation(info, BLOCKING);
         Map.Entry<AnnotationTarget, AnnotationInstance> virtualBlockingAnnotation = getInheritableAnnotation(info,
                 VIRTUAL_BLOCKING);
