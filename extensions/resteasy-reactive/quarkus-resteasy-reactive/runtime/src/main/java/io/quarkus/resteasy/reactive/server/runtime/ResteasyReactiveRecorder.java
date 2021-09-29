@@ -5,6 +5,8 @@ import static io.quarkus.resteasy.reactive.server.runtime.NotFoundExceptionMappe
 import java.io.Closeable;
 import java.lang.reflect.InvocationTargetException;
 import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -64,6 +66,14 @@ public class ResteasyReactiveRecorder extends ResteasyReactiveCommonRecorder imp
         }
     };
 
+    public static final Supplier<Executor> VIRTUAL_EXECUTOR_SUPPLIER = new Supplier<Executor>() {
+        @Override
+        public Executor get() {
+            ThreadFactory factory = Thread.ofVirtual().scheduler(Executors.newSingleThreadExecutor()).factory();
+            return Executors.newThreadPerTaskExecutor(factory);
+        }
+    };
+
     static volatile Deployment currentDeployment;
 
     public static Deployment getCurrentDeployment() {
@@ -116,6 +126,7 @@ public class ResteasyReactiveRecorder extends ResteasyReactiveCommonRecorder imp
         }
 
         RuntimeDeploymentManager runtimeDeploymentManager = new RuntimeDeploymentManager(info, EXECUTOR_SUPPLIER,
+                VIRTUAL_EXECUTOR_SUPPLIER,
                 new CustomServerRestHandlers(new BlockingInputHandlerSupplier()),
                 closeTaskHandler, contextFactory, new ArcThreadSetupAction(beanContainer.requestContext()),
                 vertxConfig.rootPath);
