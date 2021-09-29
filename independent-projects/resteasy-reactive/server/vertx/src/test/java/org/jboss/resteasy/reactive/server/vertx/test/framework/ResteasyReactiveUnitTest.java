@@ -95,6 +95,7 @@ public class ResteasyReactiveUnitTest implements BeforeAllCallback, AfterAllCall
     static Router router;
     static Route route;
     static Executor executor = Executors.newFixedThreadPool(10);
+    static Executor virtualExecutor = Executors.newVirtualThreadExecutor();
 
     List<Closeable> closeTasks = new ArrayList<>();
 
@@ -312,6 +313,7 @@ public class ResteasyReactiveUnitTest implements BeforeAllCallback, AfterAllCall
                     }
                 });
         RuntimeDeploymentManager runtimeDeploymentManager = new RuntimeDeploymentManager(info, () -> executor,
+                () -> virtualExecutor,
                 new CustomServerRestHandlers(null),
                 closeable -> closeTasks.add(closeable), new VertxRequestContextFactory(), ThreadSetupAction.NOOP, "/");
         Deployment deployment = runtimeDeploymentManager.deploy();
