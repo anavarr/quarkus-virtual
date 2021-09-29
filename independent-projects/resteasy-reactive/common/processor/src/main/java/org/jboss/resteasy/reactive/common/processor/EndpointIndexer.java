@@ -526,45 +526,88 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
     }
 
     private boolean isVirtualBlocking(MethodInfo info, BlockingDefault defaultValue) {
+        Map.Entry<AnnotationTarget, AnnotationInstance> blockingAnnotation = getInheritableAnnotation(info, BLOCKING);
         Map.Entry<AnnotationTarget, AnnotationInstance> virtualBlockingAnnotation = getInheritableAnnotation(info,
                 VIRTUAL_BLOCKING);
         Map.Entry<AnnotationTarget, AnnotationInstance> nonBlockingAnnotation = getInheritableAnnotation(info,
                 NON_BLOCKING);
+
         if ((virtualBlockingAnnotation != null) && (nonBlockingAnnotation != null)) {
             if (virtualBlockingAnnotation.getKey().kind() == nonBlockingAnnotation.getKey().kind()) {
                 if (virtualBlockingAnnotation.getKey().kind() == AnnotationTarget.Kind.METHOD) {
-                    throw new DeploymentException("Method '" + info.name() + "' of class '" + info.declaringClass().name()
-                            + "' contains both @Blocking and @NonBlocking annotations.");
+                    throw new DeploymentException(
+                            "Method '" + info.name() + "' of class '" + info.declaringClass().name()
+                                    + "' contains both @VirtualBlocking and @NonBlocking annotations."
+                    );
                 } else {
                     throw new DeploymentException("Class '" + info.declaringClass().name()
-                            + "' contains both @Blocking and @NonBlocking annotations.");
+                            + "' contains both @VirtualBlocking and @NonBlocking annotations.");
                 }
             }
             if (virtualBlockingAnnotation.getKey().kind() == AnnotationTarget.Kind.METHOD) {
-                // the most specific annotation was the @vIRTUALBlocking annotation on the method
+                //still need to test if there is also a @Blocking Annotation
+                if(blockingAnnotation != null &&
+                        virtualBlockingAnnotation.getKey().kind() == blockingAnnotation.getKey().kind()){
+                    throw new DeploymentException(
+                            "Method '" + info.name() + "' of class '" + info.declaringClass().name()
+                                    + "' contains both @VirtualBlocking and @Blocking annotations."
+                    );
+                }
+                // the most specific annotation was the @VirtualBlocking annotation on the method
                 return true;
             } else {
+                if(blockingAnnotation != null
+                        && virtualBlockingAnnotation.getKey().kind() == blockingAnnotation.getKey().kind()){
+                    //although @NonBlocking is the most specific annotation, the class is both VirtualBlocking and Blocking, should we throw ?
+                    throw new DeploymentException("Class '" + info.declaringClass().name()
+                            + "' contains both @VirtualBlocking and @Blocking annotations.");
+                }
                 // the most specific annotation was the @NonBlocking annotation on the method
                 return false;
             }
-        } else if ((virtualBlockingAnnotation != null)) {
+        } else if(virtualBlockingAnnotation != null && blockingAnnotation != null){
+            //simpler than first case since we know nonBlockingAnnotation is null
+            if (virtualBlockingAnnotation.getKey().kind() == blockingAnnotation.getKey().kind()) {
+                if (virtualBlockingAnnotation.getKey().kind() == AnnotationTarget.Kind.METHOD) {
+                    throw new DeploymentException(
+                            "Method '" + info.name() + "' of class '" + info.declaringClass().name()
+                                    + "' contains both @VirtualBlocking and @Blocking annotations."
+                    );
+                } else {
+                    throw new DeploymentException("Class '" + info.declaringClass().name()
+                            + "' contains both @VirtualBlocking and @Blocking annotations.");
+                }
+            }
+            if (virtualBlockingAnnotation.getKey().kind() == AnnotationTarget.Kind.METHOD) {
+                // the most specific annotation was the @VirtualBlocking annotation on the method
+                return true;
+            } else {
+                // the most specific annotation was the @Blocking annotation on the method
+                return false;
+            }
+        } else if ((blockingAnnotation != null)) {
+            return false;
+        } else if(virtualBlockingAnnotation != null) {
             return true;
         } else if ((nonBlockingAnnotation != null)) {
             return false;
         }
+
+        //should the Transactional annotation override BlockingDefault.VIRTUAL_BLOCKING ? here it does
         Map.Entry<AnnotationTarget, AnnotationInstance> transactional = getInheritableAnnotation(info, TRANSACTIONAL); //we treat this the same as blocking, as JTA is blocking, but it is lower priority
         if (transactional != null) {
-            return true;
+            return false;
         }
+
         if (defaultValue == BlockingDefault.BLOCKING) {
             return false;
         } else if(defaultValue == BlockingDefault.VIRTUAL_BLOCKING) {
             return true;
-        }
-        else if (defaultValue == BlockingDefault.NON_BLOCKING) {
+        } else if (defaultValue == BlockingDefault.NON_BLOCKING) {
             return false;
         }
-        return doesMethodHaveBlockingSignature(info);
+        //we don't check if the method has a virtual-blocking signature since it is the same as a blocking signature, in which case the method is blocking, not virtual-blocking
+        return false;
     }
 
     private boolean isBlocking(MethodInfo info, BlockingDefault defaultValue) {
