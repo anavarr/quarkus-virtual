@@ -595,8 +595,11 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
                 if (actualMethodInfo != null) {
                     //we don't pass AUTOMATIC here, as the method signature would be the same, so the same determination
                     //would be reached for a default
-                    blocking = isBlocking(actualMethodInfo, blocking ? BlockingDefault.BLOCKING : BlockingDefault.NON_BLOCKING);
-                    virtualBlocking = isVirtualBlocking(actualMethodInfo, virtualBlocking ? BlockingDefault.VIRTUAL_BLOCKING : BlockingDefault.NON_BLOCKING);
+                    blocking = isBlocking(actualMethodInfo,
+                            blocking ? BlockingDefault.BLOCKING : BlockingDefault.NON_BLOCKING);
+                    virtualBlocking = isVirtualBlocking(actualMethodInfo,
+                            virtualBlocking ? (blocking ? BlockingDefault.BLOCKING : BlockingDefault.VIRTUAL_BLOCKING)
+                                    : BlockingDefault.NON_BLOCKING);
                 }
             }
 
