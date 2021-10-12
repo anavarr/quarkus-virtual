@@ -168,7 +168,7 @@ public final class ResteasyReactiveDotNames {
     public static final DotName INVOCATION_CALLBACK = DotName.createSimple(InvocationCallback.class.getName());
 
     public static final DotName BLOCKING = DotName.createSimple(Blocking.class.getName());
-    public static final DotName VIRTUAL_BLOCKING = DotName.createSimple(RunOnVirtualThread.class.getName());
+    public static final DotName RUN_ON_VIRTUAL_THREAD = DotName.createSimple(RunOnVirtualThread.class.getName());
     public static final DotName NON_BLOCKING = DotName.createSimple(NonBlocking.class.getName());
     public static final DotName SUSPENDED = DotName.createSimple(Suspended.class.getName());
     public static final DotName PRE_MATCHING = DotName.createSimple(PreMatching.class.getName());

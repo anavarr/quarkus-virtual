@@ -1,62 +1,5 @@
 package org.jboss.resteasy.reactive.common.processor;
 
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.BEAN_PARAM;
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.BIG_DECIMAL;
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.BIG_INTEGER;
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.BLOCKING;
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.BOOLEAN;
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.CHARACTER;
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.COMPLETABLE_FUTURE;
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.COMPLETION_STAGE;
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.CONSUMES;
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.CONTEXT;
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.COOKIE_PARAM;
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.DEFAULT_VALUE;
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.DOUBLE;
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.DUMMY_ELEMENT_TYPE;
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.FLOAT;
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.FORM_PARAM;
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.HEADER_PARAM;
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.INTEGER;
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.LIST;
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.LOCAL_DATE;
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.LOCAL_DATE_TIME;
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.LOCAL_TIME;
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.LONG;
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.MATRIX_PARAM;
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.MULTI;
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.MULTI_PART_FORM_PARAM;
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.NON_BLOCKING;
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.OFFSET_DATE_TIME;
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.OFFSET_TIME;
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.OPTIONAL;
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.PATH;
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.PATH_PARAM;
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.PATH_SEGMENT;
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.PRIMITIVE_BOOLEAN;
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.PRIMITIVE_CHAR;
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.PRIMITIVE_DOUBLE;
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.PRIMITIVE_FLOAT;
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.PRIMITIVE_INTEGER;
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.PRIMITIVE_LONG;
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.PRODUCES;
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.QUERY_PARAM;
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.REST_COOKIE_PARAM;
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.REST_FORM_PARAM;
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.REST_HEADER_PARAM;
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.REST_MATRIX_PARAM;
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.REST_PATH_PARAM;
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.REST_QUERY_PARAM;
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.REST_RESPONSE;
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.REST_SSE_ELEMENT_TYPE;
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.VIRTUAL_BLOCKING;
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.SET;
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.SORTED_SET;
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.STRING;
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.SUSPENDED;
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.TRANSACTIONAL;
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.UNI;
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.ZONED_DATE_TIME;
 import java.lang.reflect.Modifier;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -105,6 +48,8 @@ import org.jboss.resteasy.reactive.common.processor.transformation.AnnotationSto
 import org.jboss.resteasy.reactive.common.processor.transformation.AnnotationsTransformer;
 import org.jboss.resteasy.reactive.common.util.URLUtils;
 import org.jboss.resteasy.reactive.spi.BeanFactory;
+
+import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.*;
 
 public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD>, PARAM extends IndexedParameter<PARAM>, METHOD extends ResourceMethod> {
 
@@ -598,7 +543,7 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
                     blocking = isBlocking(actualMethodInfo,
                             blocking ? BlockingDefault.BLOCKING : BlockingDefault.NON_BLOCKING);
                     virtualBlocking = isVirtualBlocking(actualMethodInfo,
-                            virtualBlocking ? (blocking ? BlockingDefault.BLOCKING : BlockingDefault.VIRTUAL_BLOCKING)
+                            virtualBlocking ? (blocking ? BlockingDefault.BLOCKING : BlockingDefault.RUN_ON_VIRTUAL_THREAD)
                                     : BlockingDefault.NON_BLOCKING);
                 }
             }
@@ -655,7 +600,7 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
             return false;
         Map.Entry<AnnotationTarget, AnnotationInstance> blockingAnnotation = getInheritableAnnotation(info, BLOCKING);
         Map.Entry<AnnotationTarget, AnnotationInstance> virtualBlockingAnnotation = getInheritableAnnotation(info,
-                VIRTUAL_BLOCKING);
+                RUN_ON_VIRTUAL_THREAD);
         Map.Entry<AnnotationTarget, AnnotationInstance> nonBlockingAnnotation = getInheritableAnnotation(info,
                 NON_BLOCKING);
 
@@ -717,7 +662,7 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
             return false;
         }
 
-        //should the Transactional annotation override BlockingDefault.VIRTUAL_BLOCKING ? here it does
+        //should the Transactional annotation override BlockingDefault.RUN_ON_VIRTUAL_THREAD ? here it does
         Map.Entry<AnnotationTarget, AnnotationInstance> transactional = getInheritableAnnotation(info, TRANSACTIONAL); //we treat this the same as blocking, as JTA is blocking, but it is lower priority
         if (transactional != null) {
             return false;
@@ -725,7 +670,7 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
 
         if (defaultValue == BlockingDefault.BLOCKING) {
             return false;
-        } else if (defaultValue == BlockingDefault.VIRTUAL_BLOCKING) {
+        } else if (defaultValue == BlockingDefault.RUN_ON_VIRTUAL_THREAD) {
             return true;
         } else if (defaultValue == BlockingDefault.NON_BLOCKING) {
             return false;
@@ -737,7 +682,7 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
     private boolean isBlocking(MethodInfo info, BlockingDefault defaultValue) {
         Map.Entry<AnnotationTarget, AnnotationInstance> blockingAnnotation = getInheritableAnnotation(info, BLOCKING);
         Map.Entry<AnnotationTarget, AnnotationInstance> virtualBlockingAnnotation = getInheritableAnnotation(info,
-                VIRTUAL_BLOCKING);
+                RUN_ON_VIRTUAL_THREAD);
         Map.Entry<AnnotationTarget, AnnotationInstance> nonBlockingAnnotation = getInheritableAnnotation(info,
                 NON_BLOCKING);
 
@@ -804,7 +749,7 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
         }
         if (defaultValue == BlockingDefault.BLOCKING) {
             return true;
-        } else if (defaultValue == BlockingDefault.VIRTUAL_BLOCKING) {
+        } else if (defaultValue == BlockingDefault.RUN_ON_VIRTUAL_THREAD) {
             return false;
         } else if (defaultValue == BlockingDefault.NON_BLOCKING) {
             return false;
