@@ -59,7 +59,7 @@ import org.jboss.resteasy.reactive.server.core.serialization.FixedEntityWriter;
 import org.jboss.resteasy.reactive.server.core.serialization.FixedEntityWriterArray;
 import org.jboss.resteasy.reactive.server.handlers.AbortChainHandler;
 import org.jboss.resteasy.reactive.server.handlers.BlockingHandler;
-import org.jboss.resteasy.reactive.server.handlers.VirtualBlockingHandler;
+import org.jboss.resteasy.reactive.server.handlers.VirtualThreadBlockingHandler;
 import org.jboss.resteasy.reactive.server.handlers.ExceptionHandler;
 import org.jboss.resteasy.reactive.server.handlers.FixedProducesHandler;
 import org.jboss.resteasy.reactive.server.handlers.FormBodyHandler;
@@ -207,8 +207,8 @@ public class RuntimeResourceDeployment {
                 handlers.add(blockingHandler);
                 blockingHandlerIndex = Optional.of(handlers.size() - 1);
                 score.add(ScoreSystem.Category.Execution, ScoreSystem.Diagnostic.ExecutionBlocking);
-            } else if (method.isVirtualBlocking()) {
-                handlers.add(new VirtualBlockingHandler(virtualExecutorSupplier));
+            } else if (method.isRunOnVirtualThread()) {
+                handlers.add(new VirtualThreadBlockingHandler(virtualExecutorSupplier));
                 blockingHandlerIndex = Optional.of(handlers.size() - 1);
                 score.add(ScoreSystem.Category.Execution, ScoreSystem.Diagnostic.ExecutionBlocking);
             } else {
@@ -274,10 +274,10 @@ public class RuntimeResourceDeployment {
                 if (method.isBlocking()) {
                     handlers.add(new InputHandler(resteasyReactiveConfig.getInputBufferSize(), executorSupplier));
                     checkReadBodyRequestFilters = true;
-                } else if (!method.isBlocking() && method.isVirtualBlocking()) {
+                } else if (!method.isBlocking() && method.isRunOnVirtualThread()) {
                     handlers.add(new InputHandler(resteasyReactiveConfig.getInputBufferSize(), executorSupplier));
                     checkReadBodyRequestFilters = true;
-                } else if (!method.isBlocking() && !method.isVirtualBlocking()) {
+                } else if (!method.isBlocking() && !method.isRunOnVirtualThread()) {
                     // allow the body to be read by chunks
                     handlers.add(new InputHandler(resteasyReactiveConfig.getInputBufferSize(), executorSupplier));
                     checkReadBodyRequestFilters = true;
@@ -479,7 +479,7 @@ public class RuntimeResourceDeployment {
                 method.getProduces() == null ? null : serverMediaType,
                 consumesMediaTypes, invoker,
                 clazz.getFactory(), handlers.toArray(EMPTY_REST_HANDLER_ARRAY), method.getName(), parameterDeclaredTypes,
-                nonAsyncReturnType, method.isBlocking(), method.isVirtualBlocking(), resourceClass,
+                nonAsyncReturnType, method.isBlocking(), method.isRunOnVirtualThread(), resourceClass,
                 lazyMethod,
                 pathParameterIndexes, info.isDevelopmentMode() ? score : null, sseElementType, clazz.resourceExceptionMapper());
     }

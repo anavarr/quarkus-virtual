@@ -56,7 +56,7 @@ public class ResourceMethod {
 
     private boolean blocking;
 
-    private boolean virtualBlocking;
+    private boolean runOnVirtualThread;
 
     private boolean suspended;
 
@@ -181,8 +181,10 @@ public class ResourceMethod {
         return blocking;
     }
 
-    public boolean isVirtualBlocking() {
-        return virtualBlocking;
+    public boolean isRunOnVirtualThread() {
+        System.out.print(hashCode());
+        System.out.println(" | I am run on virtual thread : " + runOnVirtualThread);
+        return runOnVirtualThread;
     }
 
     public ResourceMethod setBlocking(boolean blocking) {
@@ -190,8 +192,10 @@ public class ResourceMethod {
         return this;
     }
 
-    public ResourceMethod setVirtualBlocking(boolean virtualBlocking) {
-        this.virtualBlocking = virtualBlocking;
+    public ResourceMethod setRunOnVirtualThread(boolean runOnVirtualThread) {
+        System.out.print(hashCode());
+        System.out.println(" | I have been set to run on virtual thread : " + runOnVirtualThread);
+        this.runOnVirtualThread = runOnVirtualThread;
         return this;
     }
 
