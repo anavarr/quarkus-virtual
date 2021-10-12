@@ -7,5 +7,5 @@ public enum BlockingDefault {
     AUTOMATIC,
     BLOCKING,
     NON_BLOCKING,
-    VIRTUAL_BLOCKING
+    RUN_ON_VIRTUAL_THREAD
 }
