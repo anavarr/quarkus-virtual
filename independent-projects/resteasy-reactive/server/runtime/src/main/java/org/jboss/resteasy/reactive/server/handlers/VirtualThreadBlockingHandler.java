@@ -6,12 +6,12 @@ import org.jboss.resteasy.reactive.server.core.BlockingOperationSupport;
 import org.jboss.resteasy.reactive.server.core.ResteasyReactiveRequestContext;
 import org.jboss.resteasy.reactive.server.spi.ServerRestHandler;
 
-public class VirtualBlockingHandler implements ServerRestHandler {
+public class VirtualThreadBlockingHandler implements ServerRestHandler {
 
     private volatile Executor executor;
     private final Supplier<Executor> supplier;
 
-    public VirtualBlockingHandler(Supplier<Executor> supplier) {
+    public VirtualThreadBlockingHandler(Supplier<Executor> supplier) {
         this.supplier = supplier;
     }
 

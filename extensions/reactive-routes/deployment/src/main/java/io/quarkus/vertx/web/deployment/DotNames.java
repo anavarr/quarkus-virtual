@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.concurrent.CompletionStage;
 
 import io.smallrye.common.annotation.RunOnVirtualThread;
-import io.smallrye.common.annotation.VirtualBlocking;
 import org.jboss.jandex.DotName;
 
 import io.quarkus.vertx.web.Body;
