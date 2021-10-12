@@ -170,8 +170,8 @@ public class RuntimeResourceDeployment {
                 handlers.add(new BlockingHandler(executorSupplier));
                 blockingHandlerIndex = Optional.of(handlers.size() - 1);
                 score.add(ScoreSystem.Category.Execution, ScoreSystem.Diagnostic.ExecutionBlocking);
-            } else if (method.isVirtualBlocking()) {
-                handlers.add(new VirtualBlockingHandler(virtualExecutorSupplier));
+            } else if (method.isRunOnVirtualThread()) {
+                handlers.add(new VirtualThreadBlockingHandler(virtualExecutorSupplier));
                 blockingHandlerIndex = Optional.of(handlers.size() - 1);
                 score.add(ScoreSystem.Category.Execution, ScoreSystem.Diagnostic.ExecutionBlocking);
             } else {
@@ -237,7 +237,7 @@ public class RuntimeResourceDeployment {
                         throw new RuntimeException(
                                 "The current execution environment does not implement a ServerRestHandler for blocking input");
                     }
-                } else if (!method.isBlocking() && method.isVirtualBlocking()) {
+                } else if (!method.isBlocking() && method.isRunOnVirtualThread()) {
                     Supplier<ServerRestHandler> blockingInputHandlerSupplier = customServerRestHandlers
                             .getBlockingInputHandlerSupplier();
                     if (blockingInputHandlerSupplier != null) {
@@ -247,7 +247,7 @@ public class RuntimeResourceDeployment {
                         throw new RuntimeException(
                                 "The current execution environment does not implement a ServerRestHandler for virtual blocking input");
                     }
-                } else if (!method.isBlocking() && !method.isVirtualBlocking()) {
+                } else if (!method.isBlocking() && !method.isRunOnVirtualThread()) {
                     // allow the body to be read by chunks
                     handlers.add(new InputHandler(quarkusRestConfig.getInputBufferSize(), executorSupplier));
                 }
@@ -428,7 +428,7 @@ public class RuntimeResourceDeployment {
                 method.getProduces() == null ? null : serverMediaType,
                 consumesMediaTypes, invoker,
                 clazz.getFactory(), handlers.toArray(EMPTY_REST_HANDLER_ARRAY), method.getName(), parameterDeclaredTypes,
-                nonAsyncReturnType, method.isBlocking(), method.isVirtualBlocking(), resourceClass,
+                nonAsyncReturnType, method.isBlocking(), method.isRunOnVirtualThread(), resourceClass,
                 lazyMethod,
                 pathParameterIndexes, score, sseElementType, clazz.resourceExceptionMapper());
     }

@@ -471,7 +471,7 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
             }
             Set<String> nameBindingNames = nameBindingNames(currentMethodInfo, classNameBindings);
             boolean blocking = isBlocking(currentMethodInfo, defaultBlocking);
-            boolean virtualBlocking = isVirtualBlocking(currentMethodInfo, defaultBlocking);
+            boolean runOnVirtualThread = isRunOnVirtualThread(currentMethodInfo, defaultBlocking);
             // we want to allow "overriding" the blocking/non-blocking setting from an implementation class
             // when the class defining the annotations is an interface
             if (!actualEndpointInfo.equals(currentClassInfo) && Modifier.isInterface(currentClassInfo.flags())) {
@@ -482,8 +482,8 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
                     //would be reached for a default
                     blocking = isBlocking(actualMethodInfo,
                             blocking ? BlockingDefault.BLOCKING : BlockingDefault.NON_BLOCKING);
-                    virtualBlocking = isVirtualBlocking(actualMethodInfo,
-                            virtualBlocking ? (blocking ? BlockingDefault.BLOCKING : BlockingDefault.RUN_ON_VIRTUAL_THREAD)
+                    runOnVirtualThread = isRunOnVirtualThread(actualMethodInfo,
+                            runOnVirtualThread ? (blocking ? BlockingDefault.BLOCKING : BlockingDefault.RUN_ON_VIRTUAL_THREAD)
                                     : BlockingDefault.NON_BLOCKING);
                 }
             }
@@ -496,7 +496,7 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
                     .setNameBindingNames(nameBindingNames)
                     .setName(currentMethodInfo.name())
                     .setBlocking(blocking)
-                    .setVirtualBlocking(virtualBlocking)
+                    .setRunOnVirtualThread(runOnVirtualThread)
                     .setSuspended(suspended)
                     .setSse(sse)
                     .setSseElementType(sseElementType)
@@ -528,60 +528,60 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
 
     }
 
-    private boolean isVirtualBlocking(MethodInfo info, BlockingDefault defaultValue) {
+    private boolean isRunOnVirtualThread(MethodInfo info, BlockingDefault defaultValue) {
         if (isBlocking(info, defaultValue))
             return false;
         Map.Entry<AnnotationTarget, AnnotationInstance> blockingAnnotation = getInheritableAnnotation(info, BLOCKING);
-        Map.Entry<AnnotationTarget, AnnotationInstance> virtualBlockingAnnotation = getInheritableAnnotation(info,
+        Map.Entry<AnnotationTarget, AnnotationInstance> runOnVirtualThreadAnnotation = getInheritableAnnotation(info,
                 RUN_ON_VIRTUAL_THREAD);
         Map.Entry<AnnotationTarget, AnnotationInstance> nonBlockingAnnotation = getInheritableAnnotation(info,
                 NON_BLOCKING);
 
-        if ((virtualBlockingAnnotation != null) && (nonBlockingAnnotation != null)) {
-            if (virtualBlockingAnnotation.getKey().kind() == nonBlockingAnnotation.getKey().kind()) {
-                if (virtualBlockingAnnotation.getKey().kind() == AnnotationTarget.Kind.METHOD) {
+        if ((runOnVirtualThreadAnnotation != null) && (nonBlockingAnnotation != null)) {
+            if (runOnVirtualThreadAnnotation.getKey().kind() == nonBlockingAnnotation.getKey().kind()) {
+                if (runOnVirtualThreadAnnotation.getKey().kind() == AnnotationTarget.Kind.METHOD) {
                     throw new DeploymentException(
                             "Method '" + info.name() + "' of class '" + info.declaringClass().name()
-                                    + "' contains both @VirtualBlocking and @NonBlocking annotations.");
+                                    + "' contains both @RunOnVirtualThread and @NonBlocking annotations.");
                 } else {
                     throw new DeploymentException("Class '" + info.declaringClass().name()
-                            + "' contains both @VirtualBlocking and @NonBlocking annotations.");
+                            + "' contains both @RunOnVirtualThread and @NonBlocking annotations.");
                 }
             }
-            if (virtualBlockingAnnotation.getKey().kind() == AnnotationTarget.Kind.METHOD) {
+            if (runOnVirtualThreadAnnotation.getKey().kind() == AnnotationTarget.Kind.METHOD) {
                 //still need to test if there is also a @Blocking Annotation
                 if (blockingAnnotation != null &&
-                        virtualBlockingAnnotation.getKey().kind() == blockingAnnotation.getKey().kind()) {
+                        runOnVirtualThreadAnnotation.getKey().kind() == blockingAnnotation.getKey().kind()) {
                     throw new DeploymentException(
                             "Method '" + info.name() + "' of class '" + info.declaringClass().name()
-                                    + "' contains both @VirtualBlocking and @Blocking annotations.");
+                                    + "' contains both @RunOnVirtualThread and @Blocking annotations.");
                 }
-                // the most specific annotation was the @VirtualBlocking annotation on the method
+                // the most specific annotation was the @RunOnVirtualThread annotation on the method
                 return true;
             } else {
                 if (blockingAnnotation != null
-                        && virtualBlockingAnnotation.getKey().kind() == blockingAnnotation.getKey().kind()) {
-                    //although @NonBlocking is the most specific annotation, the class is both VirtualBlocking and Blocking, should we throw ?
+                        && runOnVirtualThreadAnnotation.getKey().kind() == blockingAnnotation.getKey().kind()) {
+                    //although @NonBlocking is the most specific annotation, the class is both @RunOnVirtualThread and @Blocking, should we throw ?
                     throw new DeploymentException("Class '" + info.declaringClass().name()
-                            + "' contains both @VirtualBlocking and @Blocking annotations.");
+                            + "' contains both @RunOnVirtualThread and @Blocking annotations.");
                 }
                 // the most specific annotation was the @NonBlocking annotation on the method
                 return false;
             }
-        } else if (virtualBlockingAnnotation != null && blockingAnnotation != null) {
+        } else if (runOnVirtualThreadAnnotation != null && blockingAnnotation != null) {
             //simpler than first case since we know nonBlockingAnnotation is null
-            if (virtualBlockingAnnotation.getKey().kind() == blockingAnnotation.getKey().kind()) {
-                if (virtualBlockingAnnotation.getKey().kind() == AnnotationTarget.Kind.METHOD) {
+            if (runOnVirtualThreadAnnotation.getKey().kind() == blockingAnnotation.getKey().kind()) {
+                if (runOnVirtualThreadAnnotation.getKey().kind() == AnnotationTarget.Kind.METHOD) {
                     throw new DeploymentException(
                             "Method '" + info.name() + "' of class '" + info.declaringClass().name()
-                                    + "' contains both @VirtualBlocking and @Blocking annotations.");
+                                    + "' contains both @RunOnVirtualThread and @Blocking annotations.");
                 } else {
                     throw new DeploymentException("Class '" + info.declaringClass().name()
-                            + "' contains both @VirtualBlocking and @Blocking annotations.");
+                            + "' contains both @RunOnVirtualThread and @Blocking annotations.");
                 }
             }
-            if (virtualBlockingAnnotation.getKey().kind() == AnnotationTarget.Kind.METHOD) {
-                // the most specific annotation was the @VirtualBlocking annotation on the method
+            if (runOnVirtualThreadAnnotation.getKey().kind() == AnnotationTarget.Kind.METHOD) {
+                // the most specific annotation was the @RunOnVirtualThread annotation on the method
                 return true;
             } else {
                 // the most specific annotation was the @Blocking annotation on the method
@@ -589,7 +589,7 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
             }
         } else if ((blockingAnnotation != null)) {
             return false;
-        } else if (virtualBlockingAnnotation != null) {
+        } else if (runOnVirtualThreadAnnotation != null) {
             return true;
         } else if ((nonBlockingAnnotation != null)) {
             return false;
@@ -614,7 +614,7 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
 
     private boolean isBlocking(MethodInfo info, BlockingDefault defaultValue) {
         Map.Entry<AnnotationTarget, AnnotationInstance> blockingAnnotation = getInheritableAnnotation(info, BLOCKING);
-        Map.Entry<AnnotationTarget, AnnotationInstance> virtualBlockingAnnotation = getInheritableAnnotation(info,
+        Map.Entry<AnnotationTarget, AnnotationInstance> runOnVirtualThreadAnnotation = getInheritableAnnotation(info,
                 RUN_ON_VIRTUAL_THREAD);
         Map.Entry<AnnotationTarget, AnnotationInstance> nonBlockingAnnotation = getInheritableAnnotation(info,
                 NON_BLOCKING);
@@ -631,47 +631,47 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
                 }
             }
             if (blockingAnnotation.getKey().kind() == AnnotationTarget.Kind.METHOD) {
-                //still need to test if there is also a virtualBlockingAnnotation
-                if (virtualBlockingAnnotation != null &&
-                        blockingAnnotation.getKey().kind() == virtualBlockingAnnotation.getKey().kind()) {
+                //still need to test if there is also a @RunOnVirtualThreadAnnotation
+                if (runOnVirtualThreadAnnotation != null &&
+                        blockingAnnotation.getKey().kind() == runOnVirtualThreadAnnotation.getKey().kind()) {
                     throw new DeploymentException(
                             "Method '" + info.name() + "' of class '" + info.declaringClass().name()
-                                    + "' contains both @Blocking and @VirtualBlocking annotations.");
+                                    + "' contains both @Blocking and @RunOnVirtualThread annotations.");
                 }
                 // the most specific annotation was the @Blocking annotation on the method
                 return true;
             } else {
-                if (virtualBlockingAnnotation != null
-                        && blockingAnnotation.getKey().kind() == virtualBlockingAnnotation.getKey().kind()) {
-                    //although @NonBlocking is the most specific annotation, the class is both VirtualBlocking and Blocking, should we throw ?
+                if (runOnVirtualThreadAnnotation != null
+                        && blockingAnnotation.getKey().kind() == runOnVirtualThreadAnnotation.getKey().kind()) {
+                    //although @NonBlocking is the most specific annotation, the class is both @RunOnVirtualThread and @Blocking, should we throw ?
                     throw new DeploymentException("Class '" + info.declaringClass().name()
-                            + "' contains both @Blocking and @VirtualBlocking annotations.");
+                            + "' contains both @Blocking and @RunOnVirtualThread annotations.");
                 }
                 // the most specific annotation was the @NonBlocking annotation on the method
                 return false;
             }
-        } else if (blockingAnnotation != null && virtualBlockingAnnotation != null) {
+        } else if (blockingAnnotation != null && runOnVirtualThreadAnnotation != null) {
             //simpler than first case since we know nonBlockingAnnotation is null
-            if (blockingAnnotation.getKey().kind() == virtualBlockingAnnotation.getKey().kind()) {
+            if (blockingAnnotation.getKey().kind() == runOnVirtualThreadAnnotation.getKey().kind()) {
                 if (blockingAnnotation.getKey().kind() == AnnotationTarget.Kind.METHOD) {
                     throw new DeploymentException(
                             "Method '" + info.name() + "' of class '" + info.declaringClass().name()
-                                    + "' contains both @Blocking and @VirtualBlocking annotations.");
+                                    + "' contains both @Blocking and @RunOnVirtualThread annotations.");
                 } else {
                     throw new DeploymentException("Class '" + info.declaringClass().name()
-                            + "' contains both @Blocking and @VirtualBlocking annotations.");
+                            + "' contains both @Blocking and @RunOnVirtualThread annotations.");
                 }
             }
             if (blockingAnnotation.getKey().kind() == AnnotationTarget.Kind.METHOD) {
                 // the most specific annotation was the @Blocking annotation on the method
                 return true;
             } else {
-                // the most specific annotation was the @VirtualBlocking annotation on the method
+                // the most specific annotation was the @RunOnVirtualThread annotation on the method
                 return false;
             }
         } else if ((blockingAnnotation != null)) {
             return true;
-        } else if (virtualBlockingAnnotation != null) {
+        } else if (runOnVirtualThreadAnnotation != null) {
             return false;
         } else if ((nonBlockingAnnotation != null)) {
             return false;
