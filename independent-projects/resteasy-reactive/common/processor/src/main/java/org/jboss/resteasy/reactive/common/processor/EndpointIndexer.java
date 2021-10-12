@@ -483,7 +483,7 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
                     blocking = isBlocking(actualMethodInfo,
                             blocking ? BlockingDefault.BLOCKING : BlockingDefault.NON_BLOCKING);
                     virtualBlocking = isVirtualBlocking(actualMethodInfo,
-                            virtualBlocking ? (blocking ? BlockingDefault.BLOCKING : BlockingDefault.VIRTUAL_BLOCKING)
+                            virtualBlocking ? (blocking ? BlockingDefault.BLOCKING : BlockingDefault.RUN_ON_VIRTUAL_THREAD)
                                     : BlockingDefault.NON_BLOCKING);
                 }
             }
@@ -595,7 +595,7 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
             return false;
         }
 
-        //should the Transactional annotation override BlockingDefault.VIRTUAL_BLOCKING ? here it does
+        //should the Transactional annotation override BlockingDefault.RUN_ON_VIRTUAL_THREAD ? here it does
         Map.Entry<AnnotationTarget, AnnotationInstance> transactional = getInheritableAnnotation(info, TRANSACTIONAL); //we treat this the same as blocking, as JTA is blocking, but it is lower priority
         if (transactional != null) {
             return false;
@@ -603,7 +603,7 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
 
         if (defaultValue == BlockingDefault.BLOCKING) {
             return false;
-        } else if (defaultValue == BlockingDefault.VIRTUAL_BLOCKING) {
+        } else if (defaultValue == BlockingDefault.RUN_ON_VIRTUAL_THREAD) {
             return true;
         } else if (defaultValue == BlockingDefault.NON_BLOCKING) {
             return false;
@@ -682,7 +682,7 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
         }
         if (defaultValue == BlockingDefault.BLOCKING) {
             return true;
-        } else if (defaultValue == BlockingDefault.VIRTUAL_BLOCKING) {
+        } else if (defaultValue == BlockingDefault.RUN_ON_VIRTUAL_THREAD) {
             return false;
         } else if (defaultValue == BlockingDefault.NON_BLOCKING) {
             return false;
