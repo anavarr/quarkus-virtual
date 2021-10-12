@@ -536,7 +536,7 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
             return false;
         Map.Entry<AnnotationTarget, AnnotationInstance> blockingAnnotation = getInheritableAnnotation(info, BLOCKING);
         Map.Entry<AnnotationTarget, AnnotationInstance> virtualBlockingAnnotation = getInheritableAnnotation(info,
-                VIRTUAL_BLOCKING);
+                RUN_ON_VIRTUAL_THREAD);
         Map.Entry<AnnotationTarget, AnnotationInstance> nonBlockingAnnotation = getInheritableAnnotation(info,
                 NON_BLOCKING);
 
@@ -618,7 +618,7 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
     private boolean isBlocking(MethodInfo info, BlockingDefault defaultValue) {
         Map.Entry<AnnotationTarget, AnnotationInstance> blockingAnnotation = getInheritableAnnotation(info, BLOCKING);
         Map.Entry<AnnotationTarget, AnnotationInstance> virtualBlockingAnnotation = getInheritableAnnotation(info,
-                VIRTUAL_BLOCKING);
+                RUN_ON_VIRTUAL_THREAD);
         Map.Entry<AnnotationTarget, AnnotationInstance> nonBlockingAnnotation = getInheritableAnnotation(info,
                 NON_BLOCKING);
 
