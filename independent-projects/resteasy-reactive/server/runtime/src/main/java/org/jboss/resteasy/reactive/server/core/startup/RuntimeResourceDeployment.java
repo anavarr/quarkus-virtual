@@ -167,11 +167,11 @@ public class RuntimeResourceDeployment {
         Optional<Integer> blockingHandlerIndex = Optional.empty();
         if (!defaultBlocking) {
             if (method.isBlocking()) {
-                handlers.add(new BlockingHandler(executorSupplier));
-                blockingHandlerIndex = Optional.of(handlers.size() - 1);
-                score.add(ScoreSystem.Category.Execution, ScoreSystem.Diagnostic.ExecutionBlocking);
-            } else if (method.isRunOnVirtualThread()) {
-                handlers.add(new VirtualThreadBlockingHandler(virtualExecutorSupplier));
+                if (method.isRunOnVirtualThread()) {
+                    handlers.add(new VirtualThreadBlockingHandler(virtualExecutorSupplier));
+                } else {
+                    handlers.add(new BlockingHandler(executorSupplier));
+                }
                 blockingHandlerIndex = Optional.of(handlers.size() - 1);
                 score.add(ScoreSystem.Category.Execution, ScoreSystem.Diagnostic.ExecutionBlocking);
             } else {
@@ -236,16 +236,6 @@ public class RuntimeResourceDeployment {
                     } else {
                         throw new RuntimeException(
                                 "The current execution environment does not implement a ServerRestHandler for blocking input");
-                    }
-                } else if (!method.isBlocking() && method.isRunOnVirtualThread()) {
-                    Supplier<ServerRestHandler> blockingInputHandlerSupplier = customServerRestHandlers
-                            .getBlockingInputHandlerSupplier();
-                    if (blockingInputHandlerSupplier != null) {
-                        // when the method is blocking, we will already be on a worker thread
-                        handlers.add(blockingInputHandlerSupplier.get());
-                    } else {
-                        throw new RuntimeException(
-                                "The current execution environment does not implement a ServerRestHandler for virtual blocking input");
                     }
                 } else if (!method.isBlocking() && !method.isRunOnVirtualThread()) {
                     // allow the body to be read by chunks
