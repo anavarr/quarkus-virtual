@@ -204,11 +204,11 @@ public class RuntimeResourceDeployment {
         Optional<Integer> blockingHandlerIndex = Optional.empty();
         if (!defaultBlocking) {
             if (method.isBlocking()) {
-                handlers.add(blockingHandler);
-                blockingHandlerIndex = Optional.of(handlers.size() - 1);
-                score.add(ScoreSystem.Category.Execution, ScoreSystem.Diagnostic.ExecutionBlocking);
-            } else if (method.isRunOnVirtualThread()) {
-                handlers.add(new VirtualThreadBlockingHandler(virtualExecutorSupplier));
+                if (method.isRunOnVirtualThread()) {
+                    handlers.add(new VirtualThreadBlockingHandler(virtualExecutorSupplier));
+                } else {
+                    handlers.add(new BlockingHandler(executorSupplier));
+                }
                 blockingHandlerIndex = Optional.of(handlers.size() - 1);
                 score.add(ScoreSystem.Category.Execution, ScoreSystem.Diagnostic.ExecutionBlocking);
             } else {
