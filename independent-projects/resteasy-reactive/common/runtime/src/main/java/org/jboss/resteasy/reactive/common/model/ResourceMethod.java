@@ -182,8 +182,6 @@ public class ResourceMethod {
     }
 
     public boolean isRunOnVirtualThread() {
-        System.out.print(hashCode());
-        System.out.println(" | I am run on virtual thread : " + runOnVirtualThread);
         return runOnVirtualThread;
     }
 
@@ -193,8 +191,6 @@ public class ResourceMethod {
     }
 
     public ResourceMethod setRunOnVirtualThread(boolean runOnVirtualThread) {
-        System.out.print(hashCode());
-        System.out.println(" | I have been set to run on virtual thread : " + runOnVirtualThread);
         this.runOnVirtualThread = runOnVirtualThread;
         return this;
     }
