@@ -59,7 +59,7 @@ import org.jboss.resteasy.reactive.server.core.serialization.FixedEntityWriter;
 import org.jboss.resteasy.reactive.server.core.serialization.FixedEntityWriterArray;
 import org.jboss.resteasy.reactive.server.handlers.AbortChainHandler;
 import org.jboss.resteasy.reactive.server.handlers.BlockingHandler;
-import org.jboss.resteasy.reactive.server.handlers.VirtualBlockingHandler;
+import org.jboss.resteasy.reactive.server.handlers.VirtualThreadBlockingHandler;
 import org.jboss.resteasy.reactive.server.handlers.ExceptionHandler;
 import org.jboss.resteasy.reactive.server.handlers.FixedProducesHandler;
 import org.jboss.resteasy.reactive.server.handlers.FormBodyHandler;
@@ -192,11 +192,11 @@ public class RuntimeResourceDeployment {
         Optional<Integer> blockingHandlerIndex = Optional.empty();
         if (!defaultBlocking) {
             if (method.isBlocking()) {
-                handlers.add(blockingHandler);
-                blockingHandlerIndex = Optional.of(handlers.size() - 1);
-                score.add(ScoreSystem.Category.Execution, ScoreSystem.Diagnostic.ExecutionBlocking);
-            } else if (method.isRunOnVirtualThread()) {
-                handlers.add(new VirtualThreadBlockingHandler(virtualExecutorSupplier));
+                if (method.isRunOnVirtualThread()) {
+                    handlers.add(new VirtualThreadBlockingHandler(virtualExecutorSupplier));
+                } else {
+                    handlers.add(new BlockingHandler(executorSupplier));
+                }
                 blockingHandlerIndex = Optional.of(handlers.size() - 1);
                 score.add(ScoreSystem.Category.Execution, ScoreSystem.Diagnostic.ExecutionBlocking);
             } else {
@@ -262,16 +262,6 @@ public class RuntimeResourceDeployment {
                     } else {
                         throw new RuntimeException(
                                 "The current execution environment does not implement a ServerRestHandler for blocking input");
-                    }
-                } else if (!method.isBlocking() && method.isRunOnVirtualThread()) {
-                    Supplier<ServerRestHandler> blockingInputHandlerSupplier = customServerRestHandlers
-                            .getBlockingInputHandlerSupplier();
-                    if (blockingInputHandlerSupplier != null) {
-                        // when the method is blocking, we will already be on a worker thread
-                        handlers.add(blockingInputHandlerSupplier.get());
-                    } else {
-                        throw new RuntimeException(
-                                "The current execution environment does not implement a ServerRestHandler for virtual blocking input");
                     }
                 } else if (!method.isBlocking() && !method.isRunOnVirtualThread()) {
                     // allow the body to be read by chunks
