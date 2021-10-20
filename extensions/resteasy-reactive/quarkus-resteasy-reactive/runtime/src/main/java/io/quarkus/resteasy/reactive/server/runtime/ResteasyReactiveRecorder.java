@@ -69,9 +69,7 @@ public class ResteasyReactiveRecorder extends ResteasyReactiveCommonRecorder imp
         @Override
         public Executor get() {
             Executor exec = Executors.newSingleThreadExecutor();
-            if (Runtime.version().compareToIgnoreOptional(Runtime.Version.parse("18-loom")) >= 0)
-                ;
-            {
+            if (Runtime.version().compareToIgnoreOptional(Runtime.Version.parse("18-loom")) >= 0) {
                 try {
                     exec = (Executor) Class.forName("java.util.concurrent.Executors")
                             .getMethod("newVirtualThreadExecutor")
