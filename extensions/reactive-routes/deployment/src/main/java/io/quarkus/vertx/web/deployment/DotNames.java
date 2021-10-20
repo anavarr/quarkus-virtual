@@ -3,7 +3,6 @@ package io.quarkus.vertx.web.deployment;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
 
-import io.smallrye.common.annotation.RunOnVirtualThread;
 import org.jboss.jandex.DotName;
 
 import io.quarkus.vertx.web.Body;
@@ -14,6 +13,7 @@ import io.quarkus.vertx.web.RouteBase;
 import io.quarkus.vertx.web.RouteFilter;
 import io.quarkus.vertx.web.RoutingExchange;
 import io.smallrye.common.annotation.Blocking;
+import io.smallrye.common.annotation.RunOnVirtualThread;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.vertx.core.buffer.Buffer;
