@@ -119,9 +119,24 @@ public class ResteasyReactiveUnitTest implements BeforeAllCallback, AfterAllCall
     static Router router;
     static Route route;
     static Executor executor = Executors.newFixedThreadPool(10);
-    static Executor virtualExecutor = Executors.newVirtualThreadExecutor();
+    static Executor virtualExecutor = setVirtualThreadExecutor();
 
     List<Closeable> closeTasks = new ArrayList<>();
+
+    private static Executor setVirtualThreadExecutor(){
+        Executor exec = Executors.newSingleThreadExecutor();
+        if (Runtime.version().compareToIgnoreOptional(Runtime.Version.parse("18-loom")) >= 0) {
+            try {
+                exec = (Executor) Class.forName("java.util.concurrent.Executors")
+                        .getMethod("newVirtualThreadExecutor")
+                        .invoke(null);
+            } catch (ClassNotFoundException | NoSuchMethodException | InvocationTargetException
+                    | IllegalAccessException e) {
+                e.printStackTrace();
+            }
+        }
+        return exec;
+    }
 
     public ResteasyReactiveUnitTest setExpectedException(Class<? extends Throwable> expectedException) {
         return assertException(t -> {
