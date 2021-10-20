@@ -157,7 +157,7 @@ public class ResteasyReactiveUnitTest implements BeforeAllCallback, AfterAllCall
         return this;
     }
 
-    private static Executor setVirtualThreadExecutor(){
+    private static Executor setVirtualThreadExecutor() {
         Executor exec = Executors.newSingleThreadExecutor();
         if (Runtime.version().compareToIgnoreOptional(Runtime.Version.parse("18-loom")) >= 0) {
             try {
