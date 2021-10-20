@@ -559,6 +559,11 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
         //if the method is not blocking, it can't be run on virtual threads.
         //Shall we really throw a DeploymentException ?
         boolean isBlocking = isBlocking(info, defaultValue);
+
+        //if the runtime does not use java 18+ then the virtual threads are not available
+        //we print a warning and discard the annotation
+        boolean isJDKCompatible = Runtime.version().compareToIgnoreOptional(Runtime.Version.parse("18-loom")) >= 0;
+
         DeploymentException de = new DeploymentException(
                 "Method '" + info.name() + "' of class '" + info.declaringClass().name()
                         + "' contains @RunOnVirtualThread but is not blocking.");
@@ -575,6 +580,11 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
         if (runOnVirtualThreadAnnotation != null) {
             if (!isBlocking)
                 throw de;
+            if (!isJDKCompatible) {
+                log.warn("Your version of the JDK is '" + Runtime.version() + "', jdk-18-loom or superior is required" +
+                        "for virtual threads to be supported.");
+                return false;
+            }
             return true;
         }
 
@@ -584,6 +594,11 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
         } else if (defaultValue == BlockingDefault.RUN_ON_VIRTUAL_THREAD) {
             if (!isBlocking)
                 throw de;
+            if (!isJDKCompatible) {
+                log.warn("Your version of the JDK is '" + Runtime.version() + "', jdk-18-loom or superior is required" +
+                        "for virtual threads to be supported.");
+                return false;
+            }
             return true;
         } else if (defaultValue == BlockingDefault.NON_BLOCKING) {
             return false;
