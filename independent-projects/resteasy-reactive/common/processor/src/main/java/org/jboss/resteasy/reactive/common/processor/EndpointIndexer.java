@@ -582,7 +582,7 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
                 throw de;
             if (!isJDKCompatible) {
                 log.warn("Your version of the JDK is '" + Runtime.version() + "', jdk-18-loom or superior is required" +
-                        "for virtual threads to be supported.");
+                        " for virtual threads to be supported.");
                 return false;
             }
             return true;
