@@ -3,10 +3,12 @@ package io.quarkus.resteasy.reactive.server.runtime;
 import static io.quarkus.resteasy.reactive.server.runtime.NotFoundExceptionMapper.classMappers;
 
 import java.io.Closeable;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -63,20 +65,34 @@ public class ResteasyReactiveRecorder extends ResteasyReactiveCommonRecorder imp
             return ExecutorRecorder.getCurrent();
         }
     };
-
     public static final Supplier<Executor> VIRTUAL_EXECUTOR_SUPPLIER = new Supplier<Executor>() {
+
+        private Executor setVirtualThreadCustomScheduler(Executor executor) {
+            try {
+                var vtf = Class.forName("java.lang.ThreadBuilders").getDeclaredClasses()[0];
+                Constructor constructor = vtf.getDeclaredConstructors()[0];
+                constructor.setAccessible(true);
+                ThreadFactory tf = (ThreadFactory) constructor.newInstance(
+                        new Object[] { Executors.newSingleThreadExecutor(), "quarkus-virtual-factory", 0, 0,
+                                null });
+
+                return (Executor) Executors.class.getMethod("newThreadPerTaskExecutor", ThreadFactory.class)
+                        .invoke(this, tf);
+            } catch (ClassNotFoundException | InvocationTargetException | InstantiationException | IllegalAccessException
+                    | NoSuchMethodException e) {
+                e.printStackTrace();
+            }
+            return null;
+        }
+
         @Override
         public Executor get() {
             Executor exec = Executors.newSingleThreadExecutor();
-            if (Runtime.version().compareToIgnoreOptional(Runtime.Version.parse("18-loom")) >= 0) {
-                try {
-                    exec = (Executor) Class.forName("java.util.concurrent.Executors")
-                            .getMethod("newVirtualThreadExecutor")
-                            .invoke(this);
-                } catch (ClassNotFoundException | NoSuchMethodException | InvocationTargetException
-                        | IllegalAccessException e) {
-                    e.printStackTrace();
-                }
+            try {
+                exec = (Executor) Executors.class.getMethod("newVirtualThreadExecutor").invoke(this);
+            } catch (InvocationTargetException | IllegalAccessException
+                    | NoSuchMethodException e) {
+                e.printStackTrace();
             }
             return exec;
         }
@@ -186,12 +202,15 @@ public class ResteasyReactiveRecorder extends ResteasyReactiveCommonRecorder imp
                     SingletonBeanFactory.setInstance(i.getClass().getName(), i);
                 }
                 applicationSupplier = new Supplier<Application>() {
+
                     @Override
                     public Application get() {
                         return application;
                     }
                 };
-            } catch (Exception e) {
+            } catch (
+
+            Exception e) {
                 throw new RuntimeException(e);
             }
         }
