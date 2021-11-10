@@ -76,7 +76,6 @@ import org.jboss.resteasy.reactive.server.providers.serialisers.ServerByteArrayM
 import org.jboss.resteasy.reactive.server.providers.serialisers.ServerStringMessageBodyHandler;
 import org.jboss.resteasy.reactive.server.spi.RuntimeConfigurableServerRestHandler;
 import org.jboss.resteasy.reactive.server.spi.RuntimeConfiguration;
-import org.jboss.resteasy.reactive.server.vertx.BlockingInputHandler;
 import org.jboss.resteasy.reactive.server.vertx.ResteasyReactiveVertxHandler;
 import org.jboss.resteasy.reactive.server.vertx.VertxRequestContextFactory;
 import org.jboss.resteasy.reactive.spi.BeanFactory;
