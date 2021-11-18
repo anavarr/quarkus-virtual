@@ -77,6 +77,7 @@ import org.jboss.resteasy.reactive.server.handlers.ResponseWriterHandler;
 import org.jboss.resteasy.reactive.server.handlers.SseResponseWriterHandler;
 import org.jboss.resteasy.reactive.server.handlers.VariableProducesHandler;
 import org.jboss.resteasy.reactive.server.handlers.VirtualThreadBlockingHandler;
+import org.jboss.resteasy.reactive.server.handlers.VirtualThreadNonBlockingHandler;
 import org.jboss.resteasy.reactive.server.mapping.RuntimeResource;
 import org.jboss.resteasy.reactive.server.mapping.URITemplate;
 import org.jboss.resteasy.reactive.server.model.*;
@@ -200,7 +201,11 @@ public class RuntimeResourceDeployment {
                 blockingHandlerIndex = Optional.of(handlers.size() - 1);
                 score.add(ScoreSystem.Category.Execution, ScoreSystem.Diagnostic.ExecutionBlocking);
             } else {
-                handlers.add(NonBlockingHandler.INSTANCE);
+                if (method.isRunOnVirtualThread()) {
+                    handlers.add(new VirtualThreadNonBlockingHandler());
+                } else {
+                    handlers.add(NonBlockingHandler.INSTANCE);
+                }
                 score.add(ScoreSystem.Category.Execution, ScoreSystem.Diagnostic.ExecutionNonBlocking);
             }
         }
