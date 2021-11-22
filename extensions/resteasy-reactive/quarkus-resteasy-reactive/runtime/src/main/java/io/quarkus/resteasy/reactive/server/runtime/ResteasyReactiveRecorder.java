@@ -68,31 +68,28 @@ public class ResteasyReactiveRecorder extends ResteasyReactiveCommonRecorder imp
     };
     public static final Supplier<Executor> VIRTUAL_EXECUTOR_SUPPLIER = new Supplier<Executor>() {
 
-        private Executor setVirtualThreadCustomScheduler(Executor executor) {
-            try {
-                var vtf = Class.forName("java.lang.ThreadBuilders").getDeclaredClasses()[0];
-                Constructor constructor = vtf.getDeclaredConstructors()[0];
-                constructor.setAccessible(true);
-                ThreadFactory tf = (ThreadFactory) constructor.newInstance(
-                        new Object[] { Executors.newSingleThreadExecutor(), "quarkus-virtual-factory", 0, 0,
-                                null });
+        private Executor setVirtualThreadCustomScheduler(Executor executor) throws ClassNotFoundException,
+                InvocationTargetException, InstantiationException, IllegalAccessException, NoSuchMethodException {
+            var vtf = Class.forName("java.lang.ThreadBuilders").getDeclaredClasses()[0];
+            Constructor constructor = vtf.getDeclaredConstructors()[0];
+            constructor.setAccessible(true);
+            ThreadFactory tf = (ThreadFactory) constructor.newInstance(
+                    new Object[] { Executors.newSingleThreadExecutor(), "quarkus-virtual-factory", 0, 0,
+                            null });
 
-                return (Executor) Executors.class.getMethod("newThreadPerTaskExecutor", ThreadFactory.class)
-                        .invoke(this, tf);
-            } catch (ClassNotFoundException | InvocationTargetException | InstantiationException | IllegalAccessException
-                    | NoSuchMethodException e) {
-                e.printStackTrace();
-            }
-            return null;
+            return (Executor) Executors.class.getMethod("newThreadPerTaskExecutor", ThreadFactory.class)
+                    .invoke(this, tf);
         }
 
         @Override
         public Executor get() {
             Executor exec = Executors.newSingleThreadExecutor();
             try {
-                exec = (Executor) Executors.class.getMethod("newVirtualThreadExecutor").invoke(this);
+                //                exec = (Executor) Executors.class.getMethod("newVirtualThreadExecutor").invoke(this);
+                exec = setVirtualThreadCustomScheduler(
+                        Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()));
             } catch (InvocationTargetException | IllegalAccessException
-                    | NoSuchMethodException e) {
+                    | NoSuchMethodException | ClassNotFoundException | InstantiationException e) {
                 e.printStackTrace();
             }
             return exec;
