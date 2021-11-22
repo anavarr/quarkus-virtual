@@ -607,6 +607,12 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
             isJDKCompatible = false;
         }
 
+        if (!isJDKCompatible) {
+            log.warn("Your version of the JDK is '" + Runtime.version() +
+                    "' and doesn't support Loom's virtual threads" +
+                    ", jdk-18-loom or superior is required for virtual threads to be supported.");
+        }
+
         Map.Entry<AnnotationTarget, AnnotationInstance> runOnVirtualThreadAnnotation = getInheritableAnnotation(info,
                 RUN_ON_VIRTUAL_THREAD);
 
@@ -618,12 +624,6 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
         }
 
         if (runOnVirtualThreadAnnotation != null) {
-            if (!isJDKCompatible) {
-                log.warn("Your version of the JDK is '" + Runtime.version() +
-                        "' and doesn't support Loom's virtual threads" +
-                        ", jdk-18-loom or superior is required for virtual threads to be supported.");
-                return false;
-            }
             return true;
         }
 
@@ -631,11 +631,6 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
         if (defaultValue == BlockingDefault.BLOCKING) {
             return false;
         } else if (defaultValue == BlockingDefault.RUN_ON_VIRTUAL_THREAD) {
-            if (!isJDKCompatible) {
-                log.warn("Your version of the JDK is '" + Runtime.version() + "', jdk-18-loom or superior is required" +
-                        "for virtual threads to be supported.");
-                return false;
-            }
             return true;
         } else if (defaultValue == BlockingDefault.NON_BLOCKING) {
             return false;
