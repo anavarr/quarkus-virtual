@@ -83,7 +83,6 @@ public class ResteasyReactiveRecorder extends ResteasyReactiveCommonRecorder imp
 
         @Override
         public Executor get() {
-            System.out.println("Hoho");
             Executor exec = Executors.newSingleThreadExecutor();
             try {
                 //                exec = (Executor) Executors.class.getMethod("newVirtualThreadExecutor").invoke(this);
