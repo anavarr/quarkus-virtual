@@ -8,9 +8,10 @@ import org.jboss.resteasy.reactive.server.spi.ServerRestHandler;
 
 public class VirtualThreadNonBlockingHandler implements ServerRestHandler {
     private Executor executor;
-    private volatile ConcurrentHashMap<String, Executor> eventLoops = new ConcurrentHashMap<>();
+    private static volatile ConcurrentHashMap<String, Executor> eventLoops = new ConcurrentHashMap<>();
 
     public VirtualThreadNonBlockingHandler() {
+        System.out.println("Hey someone is creating me");
     }
 
     @Override
@@ -19,10 +20,9 @@ public class VirtualThreadNonBlockingHandler implements ServerRestHandler {
             return; //already dispatched
         }
 
-        System.out.println(Thread.currentThread());
-        if (eventLoops.containsKey(requestContext.getContextExecutor())) {
-            executor = eventLoops.get(requestContext.getContextExecutor());
-        } else {
+        //        System.out.println("NonBlockingHandler : " + Thread.currentThread());
+        if (!eventLoops.containsKey(Thread.currentThread().toString())) {
+            System.out.println("Creating yet another one");
             var vtf = Class.forName("java.lang.ThreadBuilders").getDeclaredClasses()[0];
             Constructor constructor = vtf.getDeclaredConstructors()[0];
             constructor.setAccessible(true);
@@ -31,10 +31,9 @@ public class VirtualThreadNonBlockingHandler implements ServerRestHandler {
                             null });
             var exec = (Executor) Executors.class.getMethod("newThreadPerTaskExecutor", ThreadFactory.class)
                     .invoke(this, tf);
-            eventLoops.put(requestContext.getContextExecutor().toString(), exec);
-            executor = eventLoops.get(requestContext.getContextExecutor().toString());
+            eventLoops.put(Thread.currentThread().toString(), exec);
         }
         requestContext.suspend();
-        requestContext.resume(executor);
+        requestContext.resume(eventLoops.get(Thread.currentThread().toString()));
     }
 }
