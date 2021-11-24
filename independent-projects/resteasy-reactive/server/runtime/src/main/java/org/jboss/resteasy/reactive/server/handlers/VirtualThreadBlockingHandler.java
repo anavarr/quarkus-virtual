@@ -8,15 +8,18 @@ import org.jboss.resteasy.reactive.server.spi.ServerRestHandler;
 
 public class VirtualThreadBlockingHandler implements ServerRestHandler {
 
-    private volatile Executor executor;
-    private final Supplier<Executor> supplier;
+    private static volatile Executor executor;
+    private static Supplier<Executor> supplier = null;
 
     public VirtualThreadBlockingHandler(Supplier<Executor> supplier) {
-        this.supplier = supplier;
+        if (VirtualThreadBlockingHandler.supplier == null) {
+            VirtualThreadBlockingHandler.supplier = supplier;
+        }
     }
 
     @Override
     public void handle(ResteasyReactiveRequestContext requestContext) throws Exception {
+        //        System.out.println("BlockingHandler : " + Thread.currentThread());
         if (BlockingOperationSupport.isBlockingAllowed()) {
             return; //already dispatched
         }
