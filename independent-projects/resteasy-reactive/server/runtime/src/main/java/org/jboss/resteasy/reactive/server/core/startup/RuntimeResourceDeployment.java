@@ -279,10 +279,7 @@ public class RuntimeResourceDeployment {
                 if (method.isBlocking()) {
                     handlers.add(new InputHandler(resteasyReactiveConfig.getInputBufferSize(), executorSupplier));
                     checkReadBodyRequestFilters = true;
-                } else if (!method.isBlocking() && method.isRunOnVirtualThread()) {
-                    handlers.add(new InputHandler(resteasyReactiveConfig.getInputBufferSize(), executorSupplier));
-                    checkReadBodyRequestFilters = true;
-                } else if (!method.isBlocking() && !method.isRunOnVirtualThread()) {
+                } else if (!method.isBlocking()) {
                     // allow the body to be read by chunks
                     handlers.add(new InputHandler(resteasyReactiveConfig.getInputBufferSize(), executorSupplier));
                     checkReadBodyRequestFilters = true;
