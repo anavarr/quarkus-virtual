@@ -11,7 +11,6 @@ public class VirtualThreadNonBlockingHandler implements ServerRestHandler {
     private static volatile ConcurrentHashMap<String, Executor> eventLoops = new ConcurrentHashMap<>();
 
     public VirtualThreadNonBlockingHandler() {
-        System.out.println("Hey someone is creating me");
     }
 
     @Override
@@ -22,7 +21,6 @@ public class VirtualThreadNonBlockingHandler implements ServerRestHandler {
 
         //        System.out.println("NonBlockingHandler : " + Thread.currentThread());
         if (!eventLoops.containsKey(Thread.currentThread().toString())) {
-            System.out.println("Creating yet another one");
             var vtf = Class.forName("java.lang.ThreadBuilders").getDeclaredClasses()[0];
             Constructor constructor = vtf.getDeclaredConstructors()[0];
             constructor.setAccessible(true);
