@@ -268,7 +268,7 @@ public class RuntimeResourceDeployment {
                         throw new RuntimeException(
                                 "The current execution environment does not implement a ServerRestHandler for blocking input");
                     }
-                } else if (!method.isBlocking() && !method.isRunOnVirtualThread()) {
+                } else if (!method.isBlocking()) {
                     // allow the body to be read by chunks
                     handlers.add(new InputHandler(quarkusRestConfig.getInputBufferSize(), executorSupplier));
                 }
