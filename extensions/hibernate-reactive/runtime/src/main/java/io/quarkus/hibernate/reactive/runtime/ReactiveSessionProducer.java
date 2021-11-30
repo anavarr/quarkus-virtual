@@ -31,7 +31,8 @@ public class ReactiveSessionProducer {
             final CompletableFuture<Void> closeOperation = reactiveSession.close()
                     .subscribe()
                     .asCompletionStage();
-            if (!io.vertx.core.Context.isOnVertxThread()) {
+            if (!io.vertx.core.Context.isOnVertxThread() &&
+                    !Thread.currentThread().toString().contains("vert.x-eventloop-thread-")) {
                 //When invoked from blocking code, behave as expected and block on the operation
                 //so to not starve resources with a deferred close.
                 closeOperation.join();
