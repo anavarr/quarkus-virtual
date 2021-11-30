@@ -277,10 +277,7 @@ public class RuntimeResourceDeployment {
             checkReadBodyRequestFilters = true;
         } else if (bodyParameter != null) {
             if (!defaultBlocking) {
-                if (method.isBlocking()) {
-                    handlers.add(new InputHandler(resteasyReactiveConfig.getInputBufferSize(), executorSupplier));
-                    checkReadBodyRequestFilters = true;
-                } else if (!method.isBlocking()) {
+                if (!method.isBlocking()) {
                     // allow the body to be read by chunks
                     handlers.add(new InputHandler(resteasyReactiveConfig.getInputBufferSize(), executorSupplier));
                     checkReadBodyRequestFilters = true;

@@ -50,6 +50,7 @@ public class InputHandler implements ServerRestHandler {
         InputListener h = new InputListener(context);
         context.suspend();
         ServerHttpRequest req = context.serverRequest();
+
         if (!req.isRequestEnded()) {
             req.setReadListener(h);
             req.resumeRequestInput();
