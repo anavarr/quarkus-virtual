@@ -36,28 +36,28 @@ public class VertxLoomAdaptorProcessor {
             throws IOException {
         System.out.println();
         var klass = "io.vertx.core.impl.ContextInternal";
+
+        var mcl = Thread.currentThread().getContextClassLoader();
+        var contexInternalClass = mcl
+                .getResourceAsStream("io.vertx.core.impl.ContextInternal".replace('.', '/') + ".class");
+        try {
+            ClassReader cr = new ClassReader(contexInternalClass);
+            ClassWriter cw = new ClassWriter(cr, ClassWriter.COMPUTE_FRAMES);
+            VertxCurrentAdaptorPrinter adaptor = new VertxCurrentAdaptorPrinter(ASM9, cw);
+            cr.accept(adaptor, 0);
+            var finalClass = cw.toByteArray();
+            TraceClassVisitor cv = new TraceClassVisitor(new PrintWriter(System.out));
+            cr = new ClassReader(finalClass);
+            cr.accept(cv, 0);
+        } catch (IOException e) {
+            System.out.println("there was a problem");
+            e.printStackTrace();
+        }
+
         producer.produce(new BytecodeTransformerBuildItem(klass, new BiFunction<String, ClassVisitor, ClassVisitor>() {
             @Override
             public ClassVisitor apply(String cls, ClassVisitor classVisitor) {
-                var visitor = new VertxCurrentAdaptor(ASM9, classVisitor);
-
-                var mcl = Thread.currentThread().getContextClassLoader();
-                var contexInternalClass = mcl
-                        .getResourceAsStream("io.vertx.core.impl.ContextInternal".replace('.', '/') + ".class");
-                try {
-                    ClassReader cr = new ClassReader(contexInternalClass);
-                    ClassWriter cw = new ClassWriter(ASM9);
-                    VertxCurrentAdaptorPrinter adaptor = new VertxCurrentAdaptorPrinter(ASM9, cw);
-                    cr.accept(adaptor, 0);
-                    var finalClass = cw.toByteArray();
-                    TraceClassVisitor cv = new TraceClassVisitor(new PrintWriter(System.out));
-                    cr = new ClassReader(finalClass);
-                    cr.accept(cv, 0);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-
-                return visitor;
+                return new VertxCurrentAdaptor(ASM9, classVisitor);
             }
 
         }));
@@ -80,7 +80,7 @@ public class VertxLoomAdaptorProcessor {
                 MethodVisitor mv = cv.visitMethod(access, name, descriptor, signature, exceptions);
                 if (name.equals("current")) {
                     mv = new CurrentThreadMethodAdaptor(Gizmo.ASM_API_VERSION, mv);
-                    mv.visitMaxs(10, 10);
+                    mv.visitMaxs(3, 1);
                     return mv;
                 }
                 return mv;
@@ -106,7 +106,7 @@ public class VertxLoomAdaptorProcessor {
                 if (name.equals("current")) {
                     MethodVisitor mv = cv.visitMethod(access, name, descriptor, signature, exceptions);
                     mv = new CurrentThreadMethodAdaptor(Gizmo.ASM_API_VERSION, mv);
-                    mv.visitMaxs(10, 10);
+                    mv.visitMaxs(3, 3);
                     return mv;
                 }
                 return null;
@@ -130,8 +130,9 @@ public class VertxLoomAdaptorProcessor {
 
     private class CurrentThreadMethodAdaptor extends MethodVisitor {
         Label lElse = new Label();
-        Label lTry = new Label();
         Label lCatch = new Label();
+        Label lVirtual = new Label();
+        Label lNotVirtual = new Label();
         boolean firstReturn = true;
 
         public CurrentThreadMethodAdaptor(int api, MethodVisitor methodVisitor) {
@@ -143,37 +144,98 @@ public class VertxLoomAdaptorProcessor {
             mv.visitCode();
         }
 
-        //        @Override
-        //        public void visitLabel(final Label label) {
-        //            mv.visitLabel(label);
-        //        }
-
         @Override
         public void visitInsn(final int opcode) {
-            if (opcode == ARETURN && firstReturn) {
-                addPrintInsn("You are returning", mv);
-            }
             mv.visitInsn(opcode);
             if (opcode == ARETURN && firstReturn) {
                 firstReturn = false;
                 mv.visitLabel(lElse);
-                addPrintInsn("in else", mv);
-                mv.visitLabel(lTry);
-                addPrintInsn("in try", mv);
-                addThrowInsn("java/lang/IllegalAccessException", mv);
+
+                //...Thread.class.getMethod("isVirtual")...
+                mv.visitLdcInsn(Type.getObjectType("java/lang/Thread"));
+                mv.visitLdcInsn("isVirtual");
+                mv.visitInsn(ICONST_0);
+                mv.visitTypeInsn(ANEWARRAY, "java/lang/Class");
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Class", "getMethod",
+                        "(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;", false);
+
+                //Thread.class.getMethod("isVirtual").invoke(Thread.currentThread())
+                mv.visitMethodInsn(INVOKESTATIC, "java/lang/Thread", "currentThread",
+                        "()Ljava/lang/Thread;", false);
+                mv.visitInsn(ICONST_0);
+                mv.visitTypeInsn(ANEWARRAY, "java/lang/Object");
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/reflect/Method", "invoke",
+                        "(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;", false);
+
+                //(Boolean)Thread.class.getMethod("isVirtual").invoke(Thread.currentThread())
+                mv.visitTypeInsn(CHECKCAST, "java/lang/Boolean");
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Boolean", "booleanValue",
+                        "()Z", false);
+
+                //if( (Boolean)Thread.class.getMethod("isVirtual").invoke(Thread.currentThread()) )
+                mv.visitJumpInsn(IFEQ, lNotVirtual); //<-- bug is
+                mv.visitLabel(lVirtual);
+
+                //if( (Boolean)Thread.class.getMehtod("isVirtual").invoke(Thread.currentTHread())
+                //      && Thread.currentThread().toString().contains("vert.x-eventloop-thread-"))
+                mv.visitMethodInsn(INVOKESTATIC, "java/lang/Thread", "currentThread",
+                        "()Ljava/lang/Thread;", false);
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Thread", "toString",
+                        "()Ljava/lang/String;", false);
+                mv.visitLdcInsn("vert.x-eventloop-thread-");
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "contains",
+                        "(Ljava/lang/CharSequence;)Z", false);
+                mv.visitJumpInsn(IFEQ, lNotVirtual);
+
+                //in if
+                mv.visitLdcInsn(Type.getObjectType("java/lang/Thread"));
+                mv.visitLdcInsn("currentCarrierThread");
+                mv.visitInsn(ICONST_0);
+                mv.visitTypeInsn(ANEWARRAY, "java/lang/Class");
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Class", "getDeclaredMethod",
+                        "(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;", false);
+                mv.visitVarInsn(ASTORE, 1);
+
+                mv.visitLabel(new Label());
+                mv.visitVarInsn(ALOAD, 1);
+                mv.visitInsn(ICONST_1);
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/reflect/Method", "setAccessible",
+                        "(Z)V", false);
+
+                mv.visitLabel(new Label());
+                mv.visitVarInsn(ALOAD, 1);
+                mv.visitMethodInsn(INVOKESTATIC, "java/lang/Thread", "currentThread",
+                        "()Ljava/lang/Thread;", false);
+                mv.visitInsn(ICONST_0);
+                mv.visitTypeInsn(ANEWARRAY, "java/lang/Object");
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/reflect/Method", "invoke",
+                        "(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;", false);
+                mv.visitTypeInsn(CHECKCAST, "java/lang/Thread");
+                mv.visitVarInsn(ASTORE, 2);
+
+                mv.visitLabel(new Label());
+                mv.visitVarInsn(ALOAD, 2);
+                mv.visitTypeInsn(CHECKCAST, "io/vertx/core/impl/VertxThread");
+                mv.visitMethodInsn(INVOKEVIRTUAL, "io/vertx/core/impl/VertxThread", "context",
+                        "()Lio/vertx/core/impl/ContextInternal;", false);
+                mv.visitInsn(ARETURN);
+
+                mv.visitLabel(lNotVirtual);
+                mv.visitInsn(ACONST_NULL);
+                mv.visitInsn(ARETURN);
+                //                addThrowInsn("java/lang/IllegalAccessException", mv);
                 mv.visitLabel(lCatch);
-                addPrintInsn("in catch", mv);
-                //            mv.visitLabel(lElse);
-                //            addPrintInsn("in new Label()", mv);
-                mv.visitTryCatchBlock(lTry, lCatch, lCatch, "java/lang/IllegalAccessException");
-                //                mv.visitTryCatchBlock(lTry, lCatch, lCatch, "Ljava/lang/reflect/InvocationTargetException");
-                //                mv.visitTryCatchBlock(lTry, lCatch, lCatch, "Ljava/lang/NoSuchMethodException");
+
+                mv.visitTryCatchBlock(lElse, lCatch, lCatch, "java/lang/IllegalAccessException");
+                mv.visitTryCatchBlock(lElse, lCatch, lCatch, "java/lang/reflect/InvocationTargetException");
+                mv.visitTryCatchBlock(lElse, lCatch, lCatch, "java/lang/NoSuchMethodException");
             }
         }
 
         @Override
         public void visitJumpInsn(final int opcode, final Label label) {
-            if (opcode == IFEQ) {
+            if (opcode == IFEQ && label != lNotVirtual) {
+                System.out.println("We encountered an IFEQ ins");
                 System.out.println("in IFEQ");
                 mv.visitJumpInsn(opcode, lElse);
                 //                mv.visitLabel(lElse);
@@ -181,16 +243,5 @@ public class VertxLoomAdaptorProcessor {
                 mv.visitJumpInsn(opcode, label);
             }
         }
-
-        //        @Override
-        //        public void visitInsn(int opcode) {
-        //            if ((opcode >= IRETURN && opcode <= RETURN) || opcode == ATHROW) {
-        //                mv.visitFieldInsn(GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;");
-        //                mv.visitLdcInsn("inserting print before return");
-        //                mv.visitMethodInsn(INVOKEVIRTUAL, "java/io/PrintStream", "println",
-        //                        "(Ljava/lang/String;)V", false);
-        //            }
-        //            mv.visitInsn(opcode);
-        //        }
     }
 }
