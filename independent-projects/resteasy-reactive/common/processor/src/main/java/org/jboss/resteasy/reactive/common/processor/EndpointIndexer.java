@@ -672,9 +672,15 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
         //if the runtime does not use java 18+ then the virtual threads are not available
         //we print a warning and discard the annotation
 
+        if (!isBlocking(info, defaultValue)) {
+            throw new DeploymentException(
+                    "Method '" + info.name() + "' of class '" + info.declaringClass().name()
+                            + "' is considered a non blocking method. @RunOnVirtualThread can only be used on " +
+                            " methods considered blocking");
+        }
         //not a very good test... To make sure we then try to fetch the ThreadBuilders class that should be found
         //only if the jdk supports loom
-        boolean isJDKCompatible = Runtime.version().compareToIgnoreOptional(Runtime.Version.parse("18-loom")) >= 0;
+        boolean isJDKCompatible = true;
         try {
             Class.forName("java.lang.ThreadBuilders");
         } catch (ClassNotFoundException e) {
@@ -684,7 +690,8 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
         if (!isJDKCompatible) {
             log.warn("Your version of the JDK is '" + Runtime.version() +
                     "' and doesn't support Loom's virtual threads" +
-                    ", jdk-18-loom or superior is required for virtual threads to be supported.");
+                    ", your runtime will have to use jdk-19-loom or superior to leverage virtual threads " +
+                    "(else java platform threads will be used instead).");
         }
 
         Map.Entry<AnnotationTarget, AnnotationInstance> runOnVirtualThreadAnnotation = getInheritableAnnotation(info,

@@ -76,8 +76,6 @@ import org.jboss.resteasy.reactive.server.handlers.ResponseHandler;
 import org.jboss.resteasy.reactive.server.handlers.ResponseWriterHandler;
 import org.jboss.resteasy.reactive.server.handlers.SseResponseWriterHandler;
 import org.jboss.resteasy.reactive.server.handlers.VariableProducesHandler;
-import org.jboss.resteasy.reactive.server.handlers.VirtualThreadBlockingHandler;
-import org.jboss.resteasy.reactive.server.handlers.VirtualThreadNonBlockingHandler;
 import org.jboss.resteasy.reactive.server.mapping.RuntimeResource;
 import org.jboss.resteasy.reactive.server.mapping.URITemplate;
 import org.jboss.resteasy.reactive.server.model.*;
@@ -206,7 +204,7 @@ public class RuntimeResourceDeployment {
         if (!defaultBlocking) {
             if (method.isBlocking()) {
                 if (method.isRunOnVirtualThread()) {
-                    handlers.add(new VirtualThreadBlockingHandler(virtualExecutorSupplier));
+                    handlers.add(new BlockingHandler(virtualExecutorSupplier));
                 } else {
                     handlers.add(new BlockingHandler(executorSupplier));
                 }
@@ -214,7 +212,10 @@ public class RuntimeResourceDeployment {
                 score.add(ScoreSystem.Category.Execution, ScoreSystem.Diagnostic.ExecutionBlocking);
             } else {
                 if (method.isRunOnVirtualThread()) {
-                    handlers.add(new VirtualThreadNonBlockingHandler());
+                    //should not happen
+                    log.error("a method was both non blocking and @RunOnVirtualThread, it is now considered " +
+                            "@RunOnVirtual and blocking");
+                    handlers.add(new BlockingHandler(virtualExecutorSupplier));
                 } else {
                     handlers.add(NonBlockingHandler.INSTANCE);
                 }
