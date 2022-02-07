@@ -14,7 +14,6 @@ public class AzureFunctionsHttpProcessor {
     @BuildStep
     public UberJarRequiredBuildItem forceUberJar() {
         // Azure Functions needs a single JAR inside a dedicated directory
-        log.info("bonjour à tous");
         return new UberJarRequiredBuildItem();
     }
 
