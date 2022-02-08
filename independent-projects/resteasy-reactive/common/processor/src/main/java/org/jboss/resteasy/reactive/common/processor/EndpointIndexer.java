@@ -50,6 +50,7 @@ import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNa
 import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.REST_RESPONSE;
 import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.REST_SSE_ELEMENT_TYPE;
 import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.REST_STREAM_ELEMENT_TYPE;
+import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.RUN_ON_VIRTUAL_THREAD;
 import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.SET;
 import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.SORTED_SET;
 import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.STRING;
@@ -57,7 +58,6 @@ import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNa
 import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.TRANSACTIONAL;
 import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.UNI;
 import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.ZONED_DATE_TIME;
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.RUN_ON_VIRTUAL_THREAD;
 
 import java.lang.reflect.Modifier;
 import java.math.BigDecimal;
@@ -107,7 +107,6 @@ import org.jboss.resteasy.reactive.common.processor.transformation.AnnotationSto
 import org.jboss.resteasy.reactive.common.processor.transformation.AnnotationsTransformer;
 import org.jboss.resteasy.reactive.common.util.URLUtils;
 import org.jboss.resteasy.reactive.spi.BeanFactory;
-
 
 public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD>, PARAM extends IndexedParameter<PARAM>, METHOD extends ResourceMethod> {
 
@@ -669,17 +668,7 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
     }
 
     private boolean isRunOnVirtualThread(MethodInfo info, BlockingDefault defaultValue) {
-        //if the runtime does not use java 18+ then the virtual threads are not available
-        //we print a warning and discard the annotation
-
-        if (!isBlocking(info, defaultValue)) {
-            throw new DeploymentException(
-                    "Method '" + info.name() + "' of class '" + info.declaringClass().name()
-                            + "' is considered a non blocking method. @RunOnVirtualThread can only be used on " +
-                            " methods considered blocking");
-        }
-        //not a very good test... To make sure we then try to fetch the ThreadBuilders class that should be found
-        //only if the jdk supports loom
+        boolean isRunOnVirtualThread = false;
         boolean isJDKCompatible = true;
         try {
             Class.forName("java.lang.ThreadBuilders");
@@ -705,17 +694,28 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
         }
 
         if (runOnVirtualThreadAnnotation != null) {
-            return true;
+            isRunOnVirtualThread = true;
         }
 
         //BlockingDefault.BLOCKING should mean "block a platform thread" ? here it does
         if (defaultValue == BlockingDefault.BLOCKING) {
             return false;
         } else if (defaultValue == BlockingDefault.RUN_ON_VIRTUAL_THREAD) {
-            return true;
+            isRunOnVirtualThread = true;
         } else if (defaultValue == BlockingDefault.NON_BLOCKING) {
             return false;
         }
+
+        if (isRunOnVirtualThread && !isBlocking(info, defaultValue)) {
+            throw new DeploymentException(
+                    "Method '" + info.name() + "' of class '" + info.declaringClass().name()
+                            + "' is considered a non blocking method. @RunOnVirtualThread can only be used on " +
+                            " methods considered blocking");
+        }else if(isRunOnVirtualThread){
+            return true;
+        }
+
+
         return false;
     }
 

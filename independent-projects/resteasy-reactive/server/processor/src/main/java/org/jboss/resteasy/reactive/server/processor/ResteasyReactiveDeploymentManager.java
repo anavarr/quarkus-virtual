@@ -418,6 +418,7 @@ public class ResteasyReactiveDeploymentManager {
             info.setApplicationPath(path);
             List<Closeable> closeTasks = new ArrayList<>();
             RuntimeDeploymentManager runtimeDeploymentManager = new RuntimeDeploymentManager(info, () -> executor,
+                    () -> executor,
                     closeTasks::add, requestContextFactory, ThreadSetupAction.NOOP, "/");
             Deployment deployment = runtimeDeploymentManager.deploy();
             deployment.setRuntimeConfiguration(runtimeConfiguration);
