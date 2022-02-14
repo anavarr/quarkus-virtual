@@ -72,7 +72,7 @@ public class ResteasyReactiveRecorder extends ResteasyReactiveCommonRecorder imp
             Constructor constructor = vtf.getDeclaredConstructors()[0];
             constructor.setAccessible(true);
             ThreadFactory tf = (ThreadFactory) constructor.newInstance(
-                    new Object[] { Executors.newSingleThreadExecutor(), "quarkus-virtual-factory", 0, 0,
+                    new Object[] { executor, "quarkus-virtual-factory-", 0, 0,
                             null });
 
             return (Executor) Executors.class.getMethod("newThreadPerTaskExecutor", ThreadFactory.class)
@@ -81,16 +81,14 @@ public class ResteasyReactiveRecorder extends ResteasyReactiveCommonRecorder imp
 
         @Override
         public Executor get() {
-            Executor exec = Executors.newSingleThreadExecutor();
             try {
-                //                exec = (Executor) Executors.class.getMethod("newVirtualThreadExecutor").invoke(this);
-                exec = setVirtualThreadCustomScheduler(
+                return setVirtualThreadCustomScheduler(
                         Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()));
             } catch (InvocationTargetException | IllegalAccessException
                     | NoSuchMethodException | ClassNotFoundException | InstantiationException e) {
                 e.printStackTrace();
             }
-            return exec;
+            return null;
         }
     };
 
