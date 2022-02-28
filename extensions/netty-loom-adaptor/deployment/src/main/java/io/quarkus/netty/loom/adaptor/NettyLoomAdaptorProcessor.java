@@ -3,12 +3,11 @@ package io.quarkus.netty.loom.adaptor;
 import static org.objectweb.asm.Opcodes.*;
 
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.function.BiFunction;
 
+import org.jboss.jandex.DotName;
 import org.jboss.logging.Logger;
 import org.objectweb.asm.*;
-import org.objectweb.asm.util.TraceClassVisitor;
 
 import io.quarkus.builder.item.*;
 import io.quarkus.builder.item.EmptyBuildItem;
@@ -21,6 +20,7 @@ import io.quarkus.deployment.builditem.CombinedIndexBuildItem;
 import io.quarkus.deployment.builditem.FeatureBuildItem;
 import io.quarkus.gizmo.Gizmo;
 import io.quarkus.netty.deployment.MinNettyAllocatorMaxOrderBuildItem;
+import io.smallrye.common.annotation.RunOnVirtualThread;
 
 public class NettyLoomAdaptorProcessor {
     static Logger LOG = Logger.getLogger(NettyLoomAdaptorProcessor.class);
@@ -36,23 +36,28 @@ public class NettyLoomAdaptorProcessor {
     void adaptNetty(CombinedIndexBuildItem combinedIndexBuildItem, BuildProducer<BytecodeTransformerBuildItem> producer)
             throws IOException {
         System.out.println();
+        var runOnVirtualThreadAnnotations = combinedIndexBuildItem.getComputingIndex()
+                .getAnnotations(DotName.createSimple(RunOnVirtualThread.class.getName())).size();
+        if (runOnVirtualThreadAnnotations == 0) {
+            return;
+        }
         var klass = "io.netty.buffer.PooledByteBufAllocator";
         var mcl = Thread.currentThread().getContextClassLoader();
         var pooledStuff = mcl
                 .getResourceAsStream("io.netty.buffer.PooledByteBufAllocator".replace('.', '/') + ".class");
-        try {
-            ClassReader cr = new ClassReader(pooledStuff);
-            ClassWriter cw = new ClassWriter(cr, ClassWriter.COMPUTE_FRAMES);
-            NettyCurrentAdaptorPrinter adaptor = new NettyCurrentAdaptorPrinter(ASM9, cw);
-            cr.accept(adaptor, 0);
-            var finalClass = cw.toByteArray();
-            TraceClassVisitor cv = new TraceClassVisitor(new PrintWriter(System.out));
-            cr = new ClassReader(finalClass);
-            cr.accept(cv, 0);
-        } catch (IOException e) {
-            System.out.println("there was a problem");
-            e.printStackTrace();
-        }
+        //        try {
+        //            ClassReader cr = new ClassReader(pooledStuff);
+        //            ClassWriter cw = new ClassWriter(cr, ClassWriter.COMPUTE_FRAMES);
+        //            NettyCurrentAdaptor adaptor = new NettyCurrentAdaptor(ASM9, cw);
+        //            cr.accept(adaptor, 0);
+        //            var finalClass = cw.toByteArray();
+        //            TraceClassVisitor cv = new TraceClassVisitor(new PrintWriter(System.out));
+        //            cr = new ClassReader(finalClass);
+        //            cr.accept(cv, 0);
+        //        } catch (IOException e) {
+        //            System.out.println("there was a problem");
+        //            e.printStackTrace();
+        //        }
 
         producer.produce(new BytecodeTransformerBuildItem(klass, new BiFunction<String, ClassVisitor, ClassVisitor>() {
             @Override
@@ -66,7 +71,7 @@ public class NettyLoomAdaptorProcessor {
     private class NettyCurrentAdaptor extends ClassVisitor {
         public NettyCurrentAdaptor(int version, ClassVisitor cv) {
             super(version, cv);
-            System.out.println("about to adapt your class");
+            LOG.info("Adapting Netty for Loom...");
         }
 
         @Override
