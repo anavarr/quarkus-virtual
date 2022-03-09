@@ -65,6 +65,7 @@ public class ResteasyReactiveRecorder extends ResteasyReactiveCommonRecorder imp
         }
     };
     public static final Supplier<Executor> VIRTUAL_EXECUTOR_SUPPLIER = new Supplier<Executor>() {
+        Executor current = null;
 
         private Executor setVirtualThreadCustomScheduler(Executor executor) throws ClassNotFoundException,
                 InvocationTargetException, InstantiationException, IllegalAccessException, NoSuchMethodException {
@@ -81,14 +82,16 @@ public class ResteasyReactiveRecorder extends ResteasyReactiveCommonRecorder imp
 
         @Override
         public Executor get() {
-            try {
-                return setVirtualThreadCustomScheduler(
-                        Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()));
-            } catch (InvocationTargetException | IllegalAccessException
-                    | NoSuchMethodException | ClassNotFoundException | InstantiationException e) {
-                e.printStackTrace();
+            if (current == null) {
+                try {
+                    current = setVirtualThreadCustomScheduler(
+                            Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()));
+                } catch (ClassNotFoundException | InvocationTargetException | InstantiationException
+                        | IllegalAccessException | NoSuchMethodException e) {
+                    e.printStackTrace();
+                }
             }
-            return null;
+            return current;
         }
     };
 
@@ -201,9 +204,7 @@ public class ResteasyReactiveRecorder extends ResteasyReactiveCommonRecorder imp
                         return application;
                     }
                 };
-            } catch (
-
-            Exception e) {
+            } catch (Exception e) {
                 throw new RuntimeException(e);
             }
         }

@@ -30,7 +30,7 @@ import javax.ws.rs.ext.MessageBodyWriter;
 import org.jboss.logging.Logger;
 import org.jboss.resteasy.reactive.RestResponse;
 import org.jboss.resteasy.reactive.common.ResteasyReactiveConfig;
-import org.jboss.resteasy.reactive.common.model.*;
+import org.jboss.resteasy.reactive.common.model.MethodParameter;
 import org.jboss.resteasy.reactive.common.model.ParameterType;
 import org.jboss.resteasy.reactive.common.model.ResourceClass;
 import org.jboss.resteasy.reactive.common.reflection.ReflectionBeanFactoryCreator;
@@ -79,7 +79,7 @@ import org.jboss.resteasy.reactive.server.handlers.SseResponseWriterHandler;
 import org.jboss.resteasy.reactive.server.handlers.VariableProducesHandler;
 import org.jboss.resteasy.reactive.server.mapping.RuntimeResource;
 import org.jboss.resteasy.reactive.server.mapping.URITemplate;
-import org.jboss.resteasy.reactive.server.model.*;
+import org.jboss.resteasy.reactive.server.model.ServerResourceMethod;
 import org.jboss.resteasy.reactive.server.model.HandlerChainCustomizer;
 import org.jboss.resteasy.reactive.server.model.ParamConverterProviders;
 import org.jboss.resteasy.reactive.server.model.ServerMethodParameter;
@@ -113,6 +113,7 @@ public class RuntimeResourceDeployment {
      */
     private final boolean defaultBlocking;
     private final BlockingHandler blockingHandler;
+    private final BlockingHandler blockingHandlerVirtualThread;
     private final ResponseWriterHandler responseWriterHandler;
 
     public RuntimeResourceDeployment(DeploymentInfo info, Supplier<Executor> executorSupplier,
@@ -129,6 +130,7 @@ public class RuntimeResourceDeployment {
         this.resourceLocatorHandler = resourceLocatorHandler;
         this.defaultBlocking = defaultBlocking;
         this.blockingHandler = new BlockingHandler(executorSupplier);
+        this.blockingHandlerVirtualThread = new BlockingHandler(virtualExecutorSupplier);
         this.responseWriterHandler = new ResponseWriterHandler(dynamicEntityWriter);
     }
 
@@ -205,9 +207,9 @@ public class RuntimeResourceDeployment {
         if (!defaultBlocking) {
             if (method.isBlocking()) {
                 if (method.isRunOnVirtualThread()) {
-                    handlers.add(new BlockingHandler(virtualExecutorSupplier));
+                    handlers.add(blockingHandlerVirtualThread);
                 } else {
-                    handlers.add(new BlockingHandler(executorSupplier));
+                    handlers.add(blockingHandler);
                 }
                 blockingHandlerIndex = Optional.of(handlers.size() - 1);
                 score.add(ScoreSystem.Category.Execution, ScoreSystem.Diagnostic.ExecutionBlocking);
@@ -216,7 +218,7 @@ public class RuntimeResourceDeployment {
                     //should not happen
                     log.error("a method was both non blocking and @RunOnVirtualThread, it is now considered " +
                             "@RunOnVirtual and blocking");
-                    handlers.add(new BlockingHandler(virtualExecutorSupplier));
+                    handlers.add(blockingHandlerVirtualThread);
                 } else {
                     handlers.add(NonBlockingHandler.INSTANCE);
                 }

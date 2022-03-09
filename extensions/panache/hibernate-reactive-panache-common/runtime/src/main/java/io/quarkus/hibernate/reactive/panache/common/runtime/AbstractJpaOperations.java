@@ -130,8 +130,7 @@ public abstract class AbstractJpaOperations<PanacheQueryType> {
     public static Uni<Mutiny.Session> getSession() {
         // Always check if we're running on the event loop: if not,
         // we need to delegate the execution of all tasks on it.
-        if (io.vertx.core.Context.isOnEventLoopThread()
-                || Thread.currentThread().toString().contains("vert.x-eventloop-thread-")) {
+        if (io.vertx.core.Context.isOnEventLoopThread()) {
             return Uni.createFrom().item(lookupSessionFromArc());
         } else {
             // FIXME: we may need context propagation
