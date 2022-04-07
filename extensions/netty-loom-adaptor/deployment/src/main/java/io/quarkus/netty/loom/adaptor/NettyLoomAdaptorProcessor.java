@@ -36,6 +36,7 @@ public class NettyLoomAdaptorProcessor {
     void adaptNetty(CombinedIndexBuildItem combinedIndexBuildItem, BuildProducer<BytecodeTransformerBuildItem> producer)
             throws IOException {
         System.out.println();
+
         var runOnVirtualThreadAnnotations = combinedIndexBuildItem.getComputingIndex()
                 .getAnnotations(DotName.createSimple(RunOnVirtualThread.class.getName())).size();
         if (runOnVirtualThreadAnnotations == 0) {
@@ -93,6 +94,14 @@ public class NettyLoomAdaptorProcessor {
                                 Label L2 = new Label();
 
                                 Label LthreadCaches = new Label();
+                                Label lcanUseVirtual = new Label();
+
+                                mv.visitLabel(lcanUseVirtual);
+                                mv.visitInsn(ICONST_1);
+                                mv.visitMethodInsn(INVOKESTATIC, "java/lang/Boolean", "valueOf",
+                                        "(Z)Ljava/lang/Boolean;", false);
+                                mv.visitFieldInsn(PUTSTATIC, "io/netty/buffer/PooledByteBufAllocator",
+                                        "canUseVirtual", "Ljava/lang/Boolean;");
 
                                 mv.visitLabel(L0);
                                 mv.visitLdcInsn("java.lang.Thread");
@@ -128,7 +137,11 @@ public class NettyLoomAdaptorProcessor {
 
                                 mv.visitLabel(L2);
                                 mv.visitVarInsn(ASTORE, 0);
-                                addPrintVar(0, "Ljava/lang/Object;", ALOAD, mv);
+                                mv.visitInsn(ICONST_0);
+                                mv.visitMethodInsn(INVOKESTATIC, "java/lang/Boolean", "valueOf",
+                                        "(Z)Ljava/lang/Boolean;", false);
+                                mv.visitFieldInsn(PUTSTATIC, "io/netty/buffer/PooledByteBufAllocator",
+                                        "canUseVirtual", "Ljava/lang/Boolean;");
 
                                 mv.visitLabel(LthreadCaches);
                                 mv.visitTypeInsn(NEW, "java/util/concurrent/ConcurrentHashMap");
@@ -292,8 +305,8 @@ public class NettyLoomAdaptorProcessor {
             mv.visitLabel(L2);
             mv.visitLabel(LError);
             mv.visitVarInsn(ASTORE, 6);
-            addPrintInsn("error in createCache : ", mv);
-            addPrintVar(6, "Ljava/lang/Object;", ALOAD, mv);
+            mv.visitInsn(ACONST_NULL);
+            mv.visitInsn(ARETURN);
 
             //we try to access the currentHashmap
             mv.visitLabel(testHashMap);
@@ -438,6 +451,10 @@ public class NettyLoomAdaptorProcessor {
                     "Ljava/lang/reflect/Method;",
                     null,
                     null);
+            cv.visitField(ACC_STATIC | ACC_PRIVATE, "canUseVirtual",
+                    "Ljava/lang/Boolean;",
+                    null,
+                    null);
             cv.visitField(ACC_STATIC | ACC_PRIVATE, "threadCaches",
                     "Ljava/util/concurrent/ConcurrentHashMap;",
                     "Ljava/util/concurrent/ConcurrentHashMapConcurrentHashMap<Ljava/lang/Thread;Lio/netty/buffer/PoolThreadCache;>;",
@@ -513,7 +530,7 @@ public class NettyLoomAdaptorProcessor {
             Label LTest = new Label();
 
             Label lVirtual = new Label();
-            Label lNotVirtual = new Label();
+            Label lTestCache = new Label();
             Label lAfter = new Label();
             Label LgotCache = new Label();
             Label LReturn = new Label();
@@ -523,6 +540,13 @@ public class NettyLoomAdaptorProcessor {
             mv.visitLabel(LStart);
             mv.visitInsn(ICONST_0);
             mv.visitVarInsn(ISTORE, 3);
+            mv.visitInsn(ACONST_NULL);
+            mv.visitVarInsn(ASTORE, 4);
+            mv.visitFieldInsn(GETSTATIC, "io/netty/buffer/PooledByteBufAllocator", "canUseVirtual",
+                    "Ljava/lang/Boolean;");
+            mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Boolean", "booleanValue",
+                    "()Z", false);
+            mv.visitJumpInsn(IFEQ, lTestCache);
 
             mv.visitLabel(L0);
             //            mv.visitLdcInsn("java.lang.Thread");
@@ -554,9 +578,11 @@ public class NettyLoomAdaptorProcessor {
             addPrintVar(4, "Ljava/lang/Object;", ALOAD, mv);
 
             mv.visitLabel(LTest);
+            mv.visitInsn(ACONST_NULL);
+            mv.visitVarInsn(ASTORE, 4);
             mv.visitVarInsn(ILOAD, 3);
             //else
-            mv.visitJumpInsn(IFEQ, lNotVirtual);
+            mv.visitJumpInsn(IFEQ, lTestCache);
 
             //if(isVirtual)...
             mv.visitLabel(lVirtual);
@@ -566,10 +592,13 @@ public class NettyLoomAdaptorProcessor {
             mv.visitMethodInsn(INVOKESPECIAL, "io/netty/buffer/PooledByteBufAllocator", "createCache",
                     "(II)Lio/netty/buffer/PoolThreadCache;", false);
             mv.visitVarInsn(ASTORE, 4);
-            mv.visitJumpInsn(GOTO, LgotCache);
 
-            //if(!isVirtual)..
-            mv.visitLabel(lNotVirtual);
+            //if(cache == null)..
+            mv.visitLabel(lTestCache);
+            mv.visitVarInsn(ALOAD, 4);
+            mv.visitJumpInsn(IFNONNULL, LgotCache);
+
+            //if the cache was indeed null
             mv.visitVarInsn(ALOAD, 0);
             mv.visitFieldInsn(GETFIELD, "io/netty/buffer/PooledByteBufAllocator", "threadCache",
                     "Lio/netty/buffer/PooledByteBufAllocator$PoolThreadLocalCache;");

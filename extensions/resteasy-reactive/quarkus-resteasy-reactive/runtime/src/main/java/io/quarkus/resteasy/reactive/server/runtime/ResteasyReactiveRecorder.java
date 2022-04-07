@@ -14,6 +14,7 @@ import java.util.function.Supplier;
 
 import javax.ws.rs.core.Application;
 
+import org.jboss.logging.Logger;
 import org.jboss.resteasy.reactive.common.core.SingletonBeanFactory;
 import org.jboss.resteasy.reactive.common.model.ResourceContextResolver;
 import org.jboss.resteasy.reactive.common.model.ResourceExceptionMapper;
@@ -58,6 +59,8 @@ import io.vertx.ext.web.RoutingContext;
 @Recorder
 public class ResteasyReactiveRecorder extends ResteasyReactiveCommonRecorder implements EndpointInvokerFactory {
 
+    static final Logger logger = Logger.getLogger("io.quarkus");
+
     public static final Supplier<Executor> EXECUTOR_SUPPLIER = new Supplier<Executor>() {
         @Override
         public Executor get() {
@@ -88,7 +91,12 @@ public class ResteasyReactiveRecorder extends ResteasyReactiveCommonRecorder imp
                             Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()));
                 } catch (ClassNotFoundException | InvocationTargetException | InstantiationException
                         | IllegalAccessException | NoSuchMethodException e) {
-                    e.printStackTrace();
+                    //quite ugly but works
+                    logger.warnf("You weren't able to create an executor that spawns virtual threads, the default" +
+                            " blocking executor will be used, please check that your JDK is compatible with " +
+                            "virtual threads");
+                    //if for some reason a class/method can't be loaded or invoked we return the traditional EXECUTOR
+                    current = EXECUTOR_SUPPLIER.get();
                 }
             }
             return current;
