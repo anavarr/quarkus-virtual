@@ -88,7 +88,7 @@ public class ResteasyReactiveRecorder extends ResteasyReactiveCommonRecorder imp
             if (current == null) {
                 try {
                     current = setVirtualThreadCustomScheduler(
-                            Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()));
+                            Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()*2));
                 } catch (ClassNotFoundException | InvocationTargetException | InstantiationException
                         | IllegalAccessException | NoSuchMethodException e) {
                     //quite ugly but works
