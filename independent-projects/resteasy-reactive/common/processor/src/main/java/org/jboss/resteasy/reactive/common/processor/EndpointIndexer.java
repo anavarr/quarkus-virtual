@@ -711,10 +711,9 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
                     "Method '" + info.name() + "' of class '" + info.declaringClass().name()
                             + "' is considered a non blocking method. @RunOnVirtualThread can only be used on " +
                             " methods considered blocking");
-        }else if(isRunOnVirtualThread){
+        } else if (isRunOnVirtualThread) {
             return true;
         }
-
 
         return false;
     }

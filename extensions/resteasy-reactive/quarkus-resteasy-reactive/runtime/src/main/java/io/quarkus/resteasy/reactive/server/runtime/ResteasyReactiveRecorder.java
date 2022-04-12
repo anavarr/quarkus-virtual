@@ -66,6 +66,7 @@ public class ResteasyReactiveRecorder extends ResteasyReactiveCommonRecorder imp
     };
     public static final Supplier<Executor> VIRTUAL_EXECUTOR_SUPPLIER = new Supplier<Executor>() {
         Executor current = null;
+
         private Executor setVirtualThreadCustomScheduler(Executor executor) throws ClassNotFoundException,
                 InvocationTargetException, InstantiationException, IllegalAccessException, NoSuchMethodException {
             var vtf = Class.forName("java.lang.ThreadBuilders").getDeclaredClasses()[0];
@@ -81,7 +82,7 @@ public class ResteasyReactiveRecorder extends ResteasyReactiveCommonRecorder imp
 
         @Override
         public Executor get() {
-            if(current == null){
+            if (current == null) {
                 try {
                     current = setVirtualThreadCustomScheduler(
                             Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()));
