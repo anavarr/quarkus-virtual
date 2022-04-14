@@ -858,8 +858,8 @@ public class DevMojo extends AbstractMojo {
             launcher = newLauncher();
             //if loom
             if (true) {
-                launcher.args().add(launcher.args().size() - 4, "--add-opens");
-                launcher.args().add(launcher.args().size() - 4, "java.base/java.lang=ALL-UNNAMED");
+                launcher.args().add(1, "--add-opens");
+                launcher.args().add(2, "java.base/java.lang=ALL-UNNAMED");
             }
         }
 
