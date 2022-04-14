@@ -211,6 +211,8 @@ public class DevMojo extends AbstractMojo {
     @Parameter(defaultValue = "${debug}")
     private String debug;
 
+    @Parameter(defaultValue = "${openLoom}")
+    private boolean openLoom;
     /**
      * Whether or not the JVM launch, in debug mode, should be suspended. This parameter is only
      * relevant when the JVM is launched in {@link #debug debug mode}. This parameter supports the
@@ -856,11 +858,6 @@ public class DevMojo extends AbstractMojo {
 
         private DevModeRunner() throws Exception {
             launcher = newLauncher();
-            //if loom
-            if (true) {
-                launcher.args().add(1, "--add-opens");
-                launcher.args().add(2, "java.base/java.lang=ALL-UNNAMED");
-            }
         }
 
         Collection<Path> pomFiles() {
@@ -938,6 +935,11 @@ public class DevMojo extends AbstractMojo {
         setJvmArgs(builder);
         if (windowsColorSupport) {
             builder.jvmArgs("-Dio.quarkus.force-color-support=true");
+        }
+
+        if (openLoom) {
+            builder.jvmArgs("--add-opens");
+            builder.jvmArgs("java.base/java.lang=ALL-UNNAMED");
         }
 
         builder.projectDir(project.getFile().getParentFile());
