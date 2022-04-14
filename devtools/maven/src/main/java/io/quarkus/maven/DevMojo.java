@@ -856,6 +856,11 @@ public class DevMojo extends AbstractMojo {
 
         private DevModeRunner() throws Exception {
             launcher = newLauncher();
+            //if loom
+            if (true) {
+                launcher.args().add(launcher.args().size() - 4, "--add-opens");
+                launcher.args().add(launcher.args().size() - 4, "java.base/java.lang=ALL-UNNAMED");
+            }
         }
 
         Collection<Path> pomFiles() {
