@@ -115,6 +115,8 @@ public class RuntimeResourceDeployment {
      */
     private final boolean defaultBlocking;
     private final BlockingHandler blockingHandler;
+    private final BlockingHandler blockingHandlerVirtualThread;
+    private final VirtualThreadNonBlockingHandler virtualThreadNonBlockingHandler;
     private final ResponseWriterHandler responseWriterHandler;
 
     public RuntimeResourceDeployment(DeploymentInfo info, Supplier<Executor> executorSupplier,
@@ -131,6 +133,8 @@ public class RuntimeResourceDeployment {
         this.resourceLocatorHandler = resourceLocatorHandler;
         this.defaultBlocking = defaultBlocking;
         this.blockingHandler = new BlockingHandler(executorSupplier);
+        this.blockingHandlerVirtualThread = new BlockingHandler(virtualExecutorSupplier);
+        virtualThreadNonBlockingHandler = new VirtualThreadNonBlockingHandler();
         this.responseWriterHandler = new ResponseWriterHandler(dynamicEntityWriter);
     }
 
@@ -207,9 +211,9 @@ public class RuntimeResourceDeployment {
         if (!defaultBlocking) {
             if (method.isBlocking()) {
                 if (method.isRunOnVirtualThread()) {
-                    handlers.add(new VirtualThreadBlockingHandler(virtualExecutorSupplier));
+                    handlers.add(blockingHandlerVirtualThread);
                 } else {
-                    handlers.add(new BlockingHandler(executorSupplier));
+                    handlers.add(blockingHandler);
                 }
                 blockingHandlerIndex = Optional.of(handlers.size() - 1);
                 score.add(ScoreSystem.Category.Execution, ScoreSystem.Diagnostic.ExecutionBlocking);

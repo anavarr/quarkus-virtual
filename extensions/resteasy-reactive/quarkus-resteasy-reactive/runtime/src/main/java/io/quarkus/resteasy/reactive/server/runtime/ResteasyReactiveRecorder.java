@@ -14,6 +14,7 @@ import java.util.function.Supplier;
 
 import javax.ws.rs.core.Application;
 
+import org.jboss.logging.Logger;
 import org.jboss.resteasy.reactive.common.core.SingletonBeanFactory;
 import org.jboss.resteasy.reactive.common.model.ResourceContextResolver;
 import org.jboss.resteasy.reactive.common.model.ResourceExceptionMapper;
@@ -58,6 +59,8 @@ import io.vertx.ext.web.RoutingContext;
 @Recorder
 public class ResteasyReactiveRecorder extends ResteasyReactiveCommonRecorder implements EndpointInvokerFactory {
 
+    static final Logger logger = Logger.getLogger("io.quarkus");
+
     public static final Supplier<Executor> EXECUTOR_SUPPLIER = new Supplier<Executor>() {
         @Override
         public Executor get() {
@@ -65,6 +68,7 @@ public class ResteasyReactiveRecorder extends ResteasyReactiveCommonRecorder imp
         }
     };
     public static final Supplier<Executor> VIRTUAL_EXECUTOR_SUPPLIER = new Supplier<Executor>() {
+        Executor current = null;
 
         private Executor setVirtualThreadCustomScheduler(Executor executor) throws ClassNotFoundException,
                 InvocationTargetException, InstantiationException, IllegalAccessException, NoSuchMethodException {
@@ -72,7 +76,7 @@ public class ResteasyReactiveRecorder extends ResteasyReactiveCommonRecorder imp
             Constructor constructor = vtf.getDeclaredConstructors()[0];
             constructor.setAccessible(true);
             ThreadFactory tf = (ThreadFactory) constructor.newInstance(
-                    new Object[] { Executors.newSingleThreadExecutor(), "quarkus-virtual-factory", 0, 0,
+                    new Object[] { executor, "quarkus-virtual-factory-", 0, 0,
                             null });
 
             return (Executor) Executors.class.getMethod("newThreadPerTaskExecutor", ThreadFactory.class)
@@ -81,16 +85,21 @@ public class ResteasyReactiveRecorder extends ResteasyReactiveCommonRecorder imp
 
         @Override
         public Executor get() {
-            Executor exec = Executors.newSingleThreadExecutor();
-            try {
-                //                exec = (Executor) Executors.class.getMethod("newVirtualThreadExecutor").invoke(this);
-                exec = setVirtualThreadCustomScheduler(
-                        Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()));
-            } catch (InvocationTargetException | IllegalAccessException
-                    | NoSuchMethodException | ClassNotFoundException | InstantiationException e) {
-                e.printStackTrace();
+            if (current == null) {
+                try {
+                    current = setVirtualThreadCustomScheduler(
+                            Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 2));
+                } catch (ClassNotFoundException | InvocationTargetException | InstantiationException
+                        | IllegalAccessException | NoSuchMethodException e) {
+                    //quite ugly but works
+                    logger.warnf("You weren't able to create an executor that spawns virtual threads, the default" +
+                            " blocking executor will be used, please check that your JDK is compatible with " +
+                            "virtual threads");
+                    //if for some reason a class/method can't be loaded or invoked we return the traditional EXECUTOR
+                    current = EXECUTOR_SUPPLIER.get();
+                }
             }
-            return exec;
+            return current;
         }
     };
 

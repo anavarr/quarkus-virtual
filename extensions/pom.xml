@@ -16,6 +16,8 @@
     <modules>
         <!-- Vert.x loom adaptor-->
         <module>vertx-loom-adaptor</module>
+        <!-- Netty loom adaptor-->
+        <module>netty-loom-adaptor</module>
         <!-- Plumbing -->
         <module>arc</module>
         <module>scheduler</module>
