@@ -77,7 +77,6 @@ import org.jboss.resteasy.reactive.server.handlers.ResponseHandler;
 import org.jboss.resteasy.reactive.server.handlers.ResponseWriterHandler;
 import org.jboss.resteasy.reactive.server.handlers.SseResponseWriterHandler;
 import org.jboss.resteasy.reactive.server.handlers.VariableProducesHandler;
-import org.jboss.resteasy.reactive.server.handlers.VirtualThreadBlockingHandler;
 import org.jboss.resteasy.reactive.server.handlers.VirtualThreadNonBlockingHandler;
 import org.jboss.resteasy.reactive.server.mapping.RuntimeResource;
 import org.jboss.resteasy.reactive.server.mapping.URITemplate;
