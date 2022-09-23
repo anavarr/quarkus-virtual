@@ -3,14 +3,16 @@ package io.quarkus.resteasy.reactive.server.runtime;
 import static io.quarkus.resteasy.reactive.server.runtime.NotFoundExceptionMapper.classMappers;
 
 import java.io.Closeable;
-import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.util.Arrays;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import javax.ws.rs.core.Application;
 
@@ -70,17 +72,20 @@ public class ResteasyReactiveRecorder extends ResteasyReactiveCommonRecorder imp
     public static final Supplier<Executor> VIRTUAL_EXECUTOR_SUPPLIER = new Supplier<Executor>() {
         Executor current = null;
 
-        private Executor setVirtualThreadCustomScheduler(Executor executor) throws ClassNotFoundException,
+        private ExecutorService setVirtualThreadCustomScheduler(Executor executor) throws ClassNotFoundException,
                 InvocationTargetException, InstantiationException, IllegalAccessException, NoSuchMethodException {
-            var vtf = Class.forName("java.lang.ThreadBuilders").getDeclaredClasses()[0];
-            Constructor constructor = vtf.getDeclaredConstructors()[0];
-            constructor.setAccessible(true);
-            ThreadFactory tf = (ThreadFactory) constructor.newInstance(
+            var cs = Arrays
+                    .stream(Class.forName("java.lang.ThreadBuilders")
+                            .getDeclaredClasses())
+                    .filter(classs -> classs.toString().contains("VirtualThreadFactory")).collect(Collectors.toList());
+            var constructorr = cs.get(0).getDeclaredConstructors()[0];
+            constructorr.setAccessible(true);
+            ThreadFactory tf = (ThreadFactory) constructorr.newInstance(
                     new Object[] { executor, "quarkus-virtual-factory-", 0, 0,
                             null });
 
-            return (Executor) Executors.class.getMethod("newThreadPerTaskExecutor", ThreadFactory.class)
-                    .invoke(this, tf);
+            return (ExecutorService) Executors.class.getMethod("newThreadPerTaskExecutor", ThreadFactory.class)
+                    .invoke(null, tf);
         }
 
         @Override
@@ -89,7 +94,7 @@ public class ResteasyReactiveRecorder extends ResteasyReactiveCommonRecorder imp
                 try {
                     current = setVirtualThreadCustomScheduler(
                             Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 2));
-                } catch (ClassNotFoundException | InvocationTargetException | InstantiationException
+                } catch (InvocationTargetException | InstantiationException | ClassNotFoundException
                         | IllegalAccessException | NoSuchMethodException e) {
                     //quite ugly but works
                     logger.warnf("You weren't able to create an executor that spawns virtual threads, the default" +
